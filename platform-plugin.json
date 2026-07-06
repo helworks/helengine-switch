@@ -1,0 +1,6 @@
+{
+  "platformId": "switch",
+  "displayName": "Nintendo Switch",
+  "builderAssemblyPath": "builder/helengine.switch.builder.dll",
+  "definitionFactoryType": "helengine.switch_platform.builder.SwitchPlatformDefinitionFactory"
+}

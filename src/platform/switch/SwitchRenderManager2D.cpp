@@ -8,7 +8,7 @@
 
 namespace helengine::switch_platform {
     /// Builds a placeholder Switch runtime texture from raw texture metadata.
-    RuntimeTexture* SwitchRenderManager2D::BuildTextureFromRaw(TextureAsset* data) {
+    ::RuntimeTexture* SwitchRenderManager2D::BuildTextureFromRaw(::TextureAsset* data) {
         if (data == nullptr) {
             throw std::invalid_argument("Switch raw texture asset is required.");
         }
@@ -17,22 +17,22 @@ namespace helengine::switch_platform {
     }
 
     /// Releases one Switch runtime texture previously created by this renderer.
-    void SwitchRenderManager2D::ReleaseTexture(RuntimeTexture* texture) {
+    void SwitchRenderManager2D::ReleaseTexture(::RuntimeTexture* texture) {
         if (texture != nullptr) {
             delete texture;
         }
     }
 
     /// Draws a rounded rectangle as a no-op placeholder.
-    void SwitchRenderManager2D::DrawRoundedRect(IRoundedRectDrawable2D*) {
+    void SwitchRenderManager2D::DrawRoundedRect(::IRoundedRectDrawable2D*) {
     }
 
     /// Draws a sprite as a no-op placeholder.
-    void SwitchRenderManager2D::DrawSprite(ISpriteDrawable2D*) {
+    void SwitchRenderManager2D::DrawSprite(::ISpriteDrawable2D*) {
     }
 
     /// Draws text as a no-op placeholder.
-    void SwitchRenderManager2D::DrawText(ITextDrawable2D*) {
+    void SwitchRenderManager2D::DrawText(::ITextDrawable2D*) {
     }
 }
 #endif

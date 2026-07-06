@@ -61,13 +61,11 @@ public sealed class SwitchNativeBuildExecutor : ISwitchNativeBuildExecutor {
             throw new ArgumentNullException(nameof(workspace));
         }
 
-        return [
+        List<string> arguments = [
             "run",
             "--rm",
             "-v",
             $"{workspace.RepositoryRootPath}:/workspace",
-            "-v",
-            $"{workspace.GeneratedCoreRootPath}:{workspace.ContainerGeneratedCoreRootPath}",
             "-v",
             $"{workspace.RomFsRootPath}:{workspace.ContainerRomFsRootPath}",
             "-w",
@@ -76,9 +74,15 @@ public sealed class SwitchNativeBuildExecutor : ISwitchNativeBuildExecutor {
             "make",
             "clean",
             "all",
-            $"HELENGINE_SWITCH_ROMFS_ROOT={workspace.ContainerRomFsRootPath}",
-            $"HELENGINE_CORE_CPP_ROOT={workspace.ContainerGeneratedCoreRootPath}"
+            $"HELENGINE_SWITCH_ROMFS_ROOT={workspace.ContainerRomFsRootPath}"
         ];
+        if (workspace.HasGeneratedCore) {
+            arguments.Insert(4, "-v");
+            arguments.Insert(5, $"{workspace.GeneratedCoreRootPath}:{workspace.ContainerGeneratedCoreRootPath}");
+            arguments.Add($"HELENGINE_CORE_CPP_ROOT={workspace.ContainerGeneratedCoreRootPath}");
+        }
+
+        return arguments;
     }
 
     /// <summary>

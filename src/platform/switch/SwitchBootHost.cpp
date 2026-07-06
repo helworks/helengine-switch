@@ -12,6 +12,8 @@
 #include "InputSystem.hpp"
 #include "InputControlKind.hpp"
 #include "PlatformInfo.hpp"
+#include "RuntimeSceneCatalog.hpp"
+#include "RuntimeSceneCatalogEntry.hpp"
 #include "SceneLoadMode.hpp"
 #include "SceneManager.hpp"
 #include "StandardPlatformAction.hpp"
@@ -66,7 +68,7 @@ namespace helengine::switch_platform {
                     controlId));
             }
 
-            return new ::StandardPlatformInputConfiguration(bindings);
+        return new ::StandardPlatformInputConfiguration(bindings);
         }
 
         /// Resolves the startup scene id from the generated runtime scene-catalog manifest.
@@ -157,7 +159,7 @@ namespace helengine::switch_platform {
     /// Initializes the generated-core runtime when generated output is available.
     void SwitchBootHost::InitializeCore() {
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
-        EngineCore = new Core();
+        EngineCore = new ::Core();
         EngineOptions = EngineCore->get_InitializationOptions();
         EngineOptions->set_ContentRootPath("romfs:/");
         EngineOptions->set_UpdateOrderLayers(4);
@@ -171,7 +173,7 @@ namespace helengine::switch_platform {
         EngineRenderManager3D = new SwitchRenderManager3D();
         EngineRenderManager2D = new SwitchRenderManager2D();
         EngineInputBackend = new SwitchInputBackend();
-        EnginePlatformInfo = new PlatformInfo("switch", "1.0.0");
+        EnginePlatformInfo = new ::PlatformInfo("switch", "1.0.0");
         EngineRenderManager3D->AddWindow(0, FramebufferWidth, FramebufferHeight);
         EngineCore->Initialize(
             EngineRenderManager3D,

@@ -1,15 +1,19 @@
 #pragma once
 
+#define Event LibnxEvent
 #include <switch.h>
+#undef Event
+
+#if HELENGINE_SWITCH_HAS_GENERATED_CORE
+class Core;
+class CoreInitializationOptions;
+class IInputBackend;
+class PlatformInfo;
+class RenderManager2D;
+class RenderManager3D;
+#endif
 
 namespace helengine::switch_platform {
-    class Core;
-    class CoreInitializationOptions;
-    class IInputBackend;
-    class PlatformInfo;
-    class RenderManager2D;
-    class RenderManager3D;
-
     /// Owns the Switch native framebuffer bootstrap and generated-core-aware presentation loop.
     class SwitchBootHost {
     public:
@@ -70,22 +74,22 @@ namespace helengine::switch_platform {
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
         /// Stores the generated-core runtime instance.
-        Core* EngineCore;
+        ::Core* EngineCore;
 
         /// Stores the runtime initialization options owned by the generated core.
-        CoreInitializationOptions* EngineOptions;
+        ::CoreInitializationOptions* EngineOptions;
 
         /// Stores the Switch 3D render manager placeholder used by generated core.
-        RenderManager3D* EngineRenderManager3D;
+        ::RenderManager3D* EngineRenderManager3D;
 
         /// Stores the Switch 2D render manager placeholder used by generated core.
-        RenderManager2D* EngineRenderManager2D;
+        ::RenderManager2D* EngineRenderManager2D;
 
         /// Stores the Switch input backend used by generated core.
-        IInputBackend* EngineInputBackend;
+        ::IInputBackend* EngineInputBackend;
 
         /// Stores the runtime platform metadata reported to generated core.
-        PlatformInfo* EnginePlatformInfo;
+        ::PlatformInfo* EnginePlatformInfo;
 #endif
     };
 }

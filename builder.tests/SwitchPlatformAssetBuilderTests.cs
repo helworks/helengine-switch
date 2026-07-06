@@ -137,6 +137,84 @@ public sealed class SwitchPlatformAssetBuilderTests {
     }
 
     /// <summary>
+    /// Ensures the Switch builder can export one engine-only bootstrap package when no generated core or staged content exists.
+    /// </summary>
+    [Fact]
+    public async Task BuildAsync_without_generated_core_or_package_source_exports_bootstrap_package() {
+        string rootPath = Path.Combine(Path.GetTempPath(), "helengine-switch-builder-tests", Guid.NewGuid().ToString("N"));
+        string workingRoot = Path.Combine(rootPath, "working");
+        string outputRoot = Path.Combine(rootPath, "output");
+        try {
+            Directory.CreateDirectory(workingRoot);
+
+            PlatformBuildManifest manifest = new(
+                1,
+                "project",
+                "1.0.0",
+                "1.0.0",
+                "switch",
+                "1.0.0",
+                Array.Empty<PlatformBuildScene>(),
+                Array.Empty<PlatformBuildAsset>());
+
+            PlatformBuildRequest request = new(
+                manifest,
+                [new PlatformBuildTargetVariant("switch-default", "switch", "switch", "debug")],
+                [
+                    new PlatformCookProfile(
+                        "debug",
+                        "Debug",
+                        new PlatformCookProfileCapabilities(
+                            "switch",
+                            "raw",
+                            "rgba",
+                            "switch-scene-v1",
+                            PlatformSerializationEndianness.LittleEndian))
+                ],
+                outputRoot,
+                workingRoot,
+                "debug",
+                "switch-native",
+                "default",
+                new Dictionary<string, string> {
+                    ["startup-clear-color"] = "#FFFF00"
+                },
+                new Dictionary<string, string> {
+                    ["default-width"] = "1280",
+                    ["default-height"] = "720",
+                    ["vsync-enabled"] = "true"
+                },
+                new Dictionary<string, string> {
+                    ["load-native-runtime-metadata"] = "true"
+                },
+                string.Empty,
+                "switch-homebrew-nro",
+                "romfs-package");
+
+            RecordingSwitchNativeBuildExecutor nativeBuildExecutor = new();
+            SwitchPlatformAssetBuilder builder = new(nativeBuildExecutor, rootPath);
+            RecordingProgressReporter progressReporter = new();
+            RecordingDiagnosticReporter diagnosticReporter = new();
+
+            PlatformBuildReport report = await builder.BuildAsync(request, progressReporter, diagnosticReporter, CancellationToken.None);
+
+            Assert.True(report.Succeeded);
+            Assert.Empty(diagnosticReporter.Diagnostics);
+            Assert.NotNull(nativeBuildExecutor.Workspace);
+            Assert.Equal(string.Empty, nativeBuildExecutor.Workspace.GeneratedCoreRootPath);
+            Assert.Equal(string.Empty, nativeBuildExecutor.Workspace.ContainerGeneratedCoreRootPath);
+            Assert.True(File.Exists(Path.Combine(outputRoot, "helengine_switch.nro")));
+            Assert.True(Directory.Exists(Path.Combine(workingRoot, "romfs")));
+            Assert.DoesNotContain(progressReporter.Updates, update => string.Equals(update.CurrentItemIdentity, "runtime", StringComparison.Ordinal));
+            Assert.True(progressReporter.Updates.Count >= 2);
+        } finally {
+            if (Directory.Exists(rootPath)) {
+                Directory.Delete(rootPath, true);
+            }
+        }
+    }
+
+    /// <summary>
     /// Captures the Switch build workspace and emits a stub repository package file for orchestration tests.
     /// </summary>
     sealed class RecordingSwitchNativeBuildExecutor : ISwitchNativeBuildExecutor {

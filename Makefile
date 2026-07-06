@@ -17,6 +17,7 @@ ROMFS :=
 GENERATED_CORE_SOURCE_DIRS :=
 GENERATED_CORE_CPPFILES :=
 GENERATED_CORE_TRANSLATION_UNIT :=
+GENERATED_CORE_TRANSLATION_UNIT_SOURCE :=
 
 APP_TITLE := Helengine Switch
 APP_AUTHOR := Helena Assis
@@ -48,18 +49,24 @@ GENERATED_CORE_TRANSLATION_UNIT := helengine_core_unity.cpp
 else
 $(error HELENGINE_CORE_CPP_ROOT '$(HELENGINE_CORE_CPP_ROOT)' does not contain helengine_core_amalgamated.cpp or helengine_core_unity.cpp)
 endif
+GENERATED_CORE_TRANSLATION_UNIT_SOURCE := $(shell cat $(HELENGINE_CORE_CPP_ROOT)/$(GENERATED_CORE_TRANSLATION_UNIT) 2>/dev/null)
 $(if $(wildcard $(HELENGINE_CORE_CPP_ROOT)/runtime/runtime_startup_manifest.cpp),,$(error HELENGINE_CORE_CPP_ROOT '$(HELENGINE_CORE_CPP_ROOT)' does not contain runtime/runtime_startup_manifest.cpp))
 $(if $(wildcard $(HELENGINE_CORE_CPP_ROOT)/runtime/runtime_scene_catalog_manifest.cpp),,$(error HELENGINE_CORE_CPP_ROOT '$(HELENGINE_CORE_CPP_ROOT)' does not contain runtime/runtime_scene_catalog_manifest.cpp))
 $(if $(wildcard $(HELENGINE_CORE_CPP_ROOT)/runtime/runtime_standard_platform_input_manifest.cpp),,$(error HELENGINE_CORE_CPP_ROOT '$(HELENGINE_CORE_CPP_ROOT)' does not contain runtime/runtime_standard_platform_input_manifest.cpp))
 CFLAGS += -DHELENGINE_SWITCH_HAS_GENERATED_CORE=1
 CXXFLAGS += -DHELENGINE_SWITCH_HAS_GENERATED_CORE=1 -I$(HELENGINE_CORE_CPP_ROOT)
 GENERATED_CORE_SOURCE_DIRS := $(HELENGINE_CORE_CPP_ROOT) $(HELENGINE_CORE_CPP_ROOT)/runtime
-GENERATED_CORE_CPPFILES := $(GENERATED_CORE_TRANSLATION_UNIT) runtime_startup_manifest.cpp runtime_scene_catalog_manifest.cpp runtime_standard_platform_input_manifest.cpp
+GENERATED_CORE_CPPFILES := $(GENERATED_CORE_TRANSLATION_UNIT) runtime_startup_manifest.cpp runtime_scene_catalog_manifest.cpp
+ifeq ($(findstring runtime/runtime_standard_platform_input_manifest.cpp,$(GENERATED_CORE_TRANSLATION_UNIT_SOURCE)),)
+GENERATED_CORE_CPPFILES += runtime_standard_platform_input_manifest.cpp
+endif
 ifneq ($(wildcard $(HELENGINE_CORE_CPP_ROOT)/runtime/runtime_code_module_manifest.cpp),)
 GENERATED_CORE_CPPFILES += runtime_code_module_manifest.cpp
 endif
 ifneq ($(wildcard $(HELENGINE_CORE_CPP_ROOT)/runtime/runtime_physics3d_scene_feature_manifest.cpp),)
+ifeq ($(findstring runtime/runtime_physics3d_scene_feature_manifest.cpp,$(GENERATED_CORE_TRANSLATION_UNIT_SOURCE)),)
 GENERATED_CORE_CPPFILES += runtime_physics3d_scene_feature_manifest.cpp
+endif
 endif
 endif
 

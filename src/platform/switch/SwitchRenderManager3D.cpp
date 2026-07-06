@@ -12,7 +12,7 @@
 namespace helengine::switch_platform {
     namespace {
         /// Converts one channel byte into its normalized float form.
-        float NormalizeChannel(byte channel) {
+        float NormalizeChannel(uint8_t channel) {
             return static_cast<float>(channel) / 255.0f;
         }
     }
@@ -22,7 +22,7 @@ namespace helengine::switch_platform {
     }
 
     /// Builds a placeholder runtime material from one cooked platform-owned material payload.
-    RuntimeMaterial* SwitchRenderManager3D::BuildMaterialFromCooked(PlatformMaterialAsset* materialAsset) {
+    ::RuntimeMaterial* SwitchRenderManager3D::BuildMaterialFromCooked(::PlatformMaterialAsset* materialAsset) {
         if (materialAsset == nullptr) {
             throw std::invalid_argument("Switch cooked material asset is required.");
         }
@@ -38,7 +38,7 @@ namespace helengine::switch_platform {
     }
 
     /// Builds a placeholder runtime material from one cooked platform-owned material payload serialized on disk.
-    RuntimeMaterial* SwitchRenderManager3D::BuildMaterialFromCooked(std::string cookedAssetPath) {
+    ::RuntimeMaterial* SwitchRenderManager3D::BuildMaterialFromCooked(std::string cookedAssetPath) {
         if (!File::Exists(cookedAssetPath)) {
             throw std::runtime_error("Switch cooked material asset was not found: " + cookedAssetPath);
         }
@@ -48,15 +48,15 @@ namespace helengine::switch_platform {
             throw std::runtime_error("Switch cooked material asset could not be opened: " + cookedAssetPath);
         }
 
-        Asset* asset = AssetSerializer::Deserialize(stream);
+        ::Asset* asset = AssetSerializer::Deserialize(stream);
         delete stream;
-        RuntimeMaterial* runtimeMaterial = BuildMaterialFromCooked(static_cast<PlatformMaterialAsset*>(asset));
+        ::RuntimeMaterial* runtimeMaterial = BuildMaterialFromCooked(static_cast<::PlatformMaterialAsset*>(asset));
         delete asset;
         return runtimeMaterial;
     }
 
     /// Builds a placeholder runtime model from the authored model asset.
-    RuntimeModel* SwitchRenderManager3D::BuildModelFromRaw(ModelAsset* data) {
+    ::RuntimeModel* SwitchRenderManager3D::BuildModelFromRaw(::ModelAsset* data) {
         if (data == nullptr) {
             throw std::invalid_argument("Switch raw model asset is required.");
         }
@@ -65,7 +65,7 @@ namespace helengine::switch_platform {
     }
 
     /// Builds a placeholder runtime model from one serialized model payload on disk.
-    RuntimeModel* SwitchRenderManager3D::BuildModelFromCooked(std::string cookedAssetPath) {
+    ::RuntimeModel* SwitchRenderManager3D::BuildModelFromCooked(std::string cookedAssetPath) {
         if (!File::Exists(cookedAssetPath)) {
             throw std::runtime_error("Switch cooked model asset was not found: " + cookedAssetPath);
         }
@@ -75,22 +75,22 @@ namespace helengine::switch_platform {
             throw std::runtime_error("Switch cooked model asset could not be opened: " + cookedAssetPath);
         }
 
-        Asset* asset = AssetSerializer::Deserialize(stream);
+        ::Asset* asset = AssetSerializer::Deserialize(stream);
         delete stream;
-        RuntimeModel* runtimeModel = BuildModelFromRaw(static_cast<ModelAsset*>(asset));
+        ::RuntimeModel* runtimeModel = BuildModelFromRaw(static_cast<::ModelAsset*>(asset));
         delete asset;
         return runtimeModel;
     }
 
     /// Releases one Switch runtime model after the final scene reference is removed.
-    void SwitchRenderManager3D::ReleaseModel(RuntimeModel* model) {
+    void SwitchRenderManager3D::ReleaseModel(::RuntimeModel* model) {
         if (model != nullptr) {
             delete model;
         }
     }
 
     /// Releases one Switch runtime material after the final scene reference is removed.
-    void SwitchRenderManager3D::ReleaseMaterial(RuntimeMaterial* material) {
+    void SwitchRenderManager3D::ReleaseMaterial(::RuntimeMaterial* material) {
         if (material != nullptr) {
             delete material;
         }

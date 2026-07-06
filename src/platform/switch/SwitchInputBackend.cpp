@@ -1,7 +1,9 @@
 #include "platform/switch/SwitchInputBackend.hpp"
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
+#define Event LibnxEvent
 #include <switch.h>
+#undef Event
 
 #include "InputFrameState.hpp"
 #include "InputGamepadButton.hpp"
@@ -14,31 +16,36 @@ namespace helengine::switch_platform {
     }
 
     /// Captures one input frame from the Switch runtime.
-    InputFrameState SwitchInputBackend::CaptureFrame() {
-        hidScanInput();
-        u64 buttons = hidKeysHeld(CONTROLLER_P1_AUTO);
-        HidAnalogStickState leftStick = hidJoystickRead(CONTROLLER_P1_AUTO, JOYSTICK_LEFT);
+    ::InputFrameState SwitchInputBackend::CaptureFrame() {
+        padConfigureInput(1, HidNpadStyleSet_NpadStandard);
 
-        InputFrameState frameState;
+        PadState padState;
+        padInitializeDefault(&padState);
+        padUpdate(&padState);
+
+        u64 buttons = padGetButtons(&padState);
+        HidAnalogStickState leftStick = padGetStickPos(&padState, 0);
+
+        ::InputFrameState frameState;
         frameState.set_GamepadCount(1);
 
-        Array<InputGamepadState>* gamepads = new Array<InputGamepadState>(1);
-        InputGamepadState gamepadState;
+        ::Array<::InputGamepadState>* gamepads = new ::Array<::InputGamepadState>(1);
+        ::InputGamepadState gamepadState;
         gamepadState.set_Connected(true);
-        gamepadState.SetButtonDown(InputGamepadButton::DPadUp, (buttons & KEY_DUP) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::DPadDown, (buttons & KEY_DDOWN) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::DPadLeft, (buttons & KEY_DLEFT) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::DPadRight, (buttons & KEY_DRIGHT) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::South, (buttons & KEY_A) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::East, (buttons & KEY_B) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::West, (buttons & KEY_Y) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::North, (buttons & KEY_X) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::LeftShoulder, (buttons & KEY_L) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::RightShoulder, (buttons & KEY_R) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::Start, (buttons & KEY_PLUS) != 0);
-        gamepadState.SetButtonDown(InputGamepadButton::Select, (buttons & KEY_MINUS) != 0);
-        gamepadState.set_LeftStickX(static_cast<int16_t>(leftStick.dx));
-        gamepadState.set_LeftStickY(static_cast<int16_t>(leftStick.dy));
+        gamepadState.SetButtonDown(::InputGamepadButton::DPadUp, (buttons & HidNpadButton_Up) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::DPadDown, (buttons & HidNpadButton_Down) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::DPadLeft, (buttons & HidNpadButton_Left) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::DPadRight, (buttons & HidNpadButton_Right) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::South, (buttons & HidNpadButton_A) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::East, (buttons & HidNpadButton_B) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::West, (buttons & HidNpadButton_Y) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::North, (buttons & HidNpadButton_X) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::LeftShoulder, (buttons & HidNpadButton_L) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::RightShoulder, (buttons & HidNpadButton_R) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::Start, (buttons & HidNpadButton_Plus) != 0);
+        gamepadState.SetButtonDown(::InputGamepadButton::Select, (buttons & HidNpadButton_Minus) != 0);
+        gamepadState.set_LeftStickX(static_cast<int16_t>(leftStick.x));
+        gamepadState.set_LeftStickY(static_cast<int16_t>(leftStick.y));
 
         (*gamepads)[0] = gamepadState;
         frameState.set_Gamepads(gamepads);

@@ -1,6 +1,7 @@
 using helengine.baseplatform.Builders;
 using helengine.baseplatform.Definitions;
 using helengine.baseplatform.Descriptors;
+using helengine.baseplatform.Manifest;
 using helengine.baseplatform.Reporting;
 using helengine.baseplatform.Requests;
 using helengine.baseplatform.Results;
@@ -11,11 +12,6 @@ namespace helengine.switch_platform.builder;
 /// Implements the Nintendo Switch platform asset builder contract.
 /// </summary>
 public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
-    /// <summary>
-    /// Environment variable that can override the Switch repository root.
-    /// </summary>
-    const string RepositoryRootEnvironmentVariableName = "HELENGINE_SWITCH_REPOSITORY_ROOT";
-
     /// <summary>
     /// Native Switch build executor used to produce the packaged NRO.
     /// </summary>
@@ -135,48 +131,64 @@ public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
             throw new ArgumentNullException(nameof(progressReporter));
         } else if (diagnosticReporter == null) {
             throw new ArgumentNullException(nameof(diagnosticReporter));
-        } else if (string.IsNullOrWhiteSpace(request.GeneratedCoreCppRootPath)) {
-            throw new ArgumentException("Generated core root path must be provided for Switch builds.", nameof(request));
-        } else if (!Directory.Exists(request.GeneratedCoreCppRootPath)) {
+        }
+
+        bool hasGeneratedCore = !string.IsNullOrWhiteSpace(request.GeneratedCoreCppRootPath);
+        bool requiresGeneratedCore = RequiresGeneratedCore(request.Manifest);
+        if (!hasGeneratedCore && requiresGeneratedCore) {
+            throw new ArgumentException("Generated core root path must be provided for Switch builds that package authored content.", nameof(request));
+        } else if (hasGeneratedCore && !Directory.Exists(request.GeneratedCoreCppRootPath)) {
             throw new DirectoryNotFoundException($"Generated core root '{request.GeneratedCoreCppRootPath}' was not found.");
         }
 
+        string repositoryRootPath = string.IsNullOrWhiteSpace(RepositoryRootPath)
+            ? SwitchRepositoryRootResolver.ResolveRepositoryRootPath()
+            : RepositoryRootPath;
         string packageSourceRootPath = ResolvePackageSourceRootPath(request.WorkingRoot);
-        if (!Directory.Exists(packageSourceRootPath)) {
+        bool hasPackageSource = Directory.Exists(packageSourceRootPath);
+        bool requiresPackageSource = RequiresPackageSource(request.Manifest);
+        if (!hasPackageSource && requiresPackageSource) {
             throw new DirectoryNotFoundException($"Switch builds require staged package content under '{PackageSourceDirectoryName}' inside the working root.");
         }
 
-        string repositoryRootPath = string.IsNullOrWhiteSpace(RepositoryRootPath)
-            ? ResolveRepositoryRootPath()
-            : RepositoryRootPath;
         string romFsRootPath = Path.Combine(Path.GetFullPath(request.WorkingRoot), "romfs");
         Directory.CreateDirectory(request.OutputRoot);
         ResetDirectory(romFsRootPath);
 
-        RuntimeNativeManifestWriter.Write(request.GeneratedCoreCppRootPath, request.Manifest);
-        progressReporter.Report(new PlatformBuildProgressUpdate(
-            "Write Runtime Metadata",
-            "runtime",
-            1,
-            3,
-            "Wrote the generated runtime manifest sources into the generated-core root."));
+        int totalSteps = hasGeneratedCore ? 3 : 2;
+        int completedSteps = 0;
+        if (hasGeneratedCore) {
+            RuntimeNativeManifestWriter.Write(request.GeneratedCoreCppRootPath, request.Manifest);
+            completedSteps++;
+            progressReporter.Report(new PlatformBuildProgressUpdate(
+                "Write Runtime Metadata",
+                "runtime",
+                completedSteps,
+                totalSteps,
+                "Wrote the generated runtime manifest sources into the generated-core root."));
+        }
 
-        RomFsAssetStager.Stage(request.Manifest, packageSourceRootPath, romFsRootPath);
+        if (hasPackageSource) {
+            RomFsAssetStager.Stage(request.Manifest, packageSourceRootPath, romFsRootPath);
+        }
+        completedSteps++;
         progressReporter.Report(new PlatformBuildProgressUpdate(
             "Stage RomFS Payloads",
-            "romfs",
-            2,
-            3,
-            "Staged the cooked payloads into the Switch RomFS root."));
+            hasPackageSource ? "romfs" : "bootstrap",
+            completedSteps,
+            totalSteps,
+            hasPackageSource
+                ? "Staged the cooked payloads into the Switch RomFS root."
+                : "No staged package-source content was provided; building the engine-only bootstrap package."));
 
         SwitchBuildWorkspace workspace = new(
             repositoryRootPath,
             request.WorkingRoot,
             request.OutputRoot,
-            request.GeneratedCoreCppRootPath,
+            hasGeneratedCore ? request.GeneratedCoreCppRootPath : string.Empty,
             romFsRootPath,
             "/workspace-staging/romfs",
-            "/generated-core",
+            hasGeneratedCore ? "/generated-core" : string.Empty,
             Path.Combine(repositoryRootPath, "build", "helengine_switch.nro"),
             Path.Combine(request.OutputRoot, "helengine_switch.nro"));
         NativeBuildExecutor.Build(workspace, cancellationToken);
@@ -185,11 +197,12 @@ public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
         }
 
         File.Copy(workspace.RepositoryPackagePath, workspace.ExportPackagePath, true);
+        completedSteps++;
         progressReporter.Report(new PlatformBuildProgressUpdate(
             "Build Switch Package",
             "helengine_switch.nro",
-            3,
-            3,
+            completedSteps,
+            totalSteps,
             "Built and exported the Switch homebrew package."));
 
         PlatformBuildReport report = new(
@@ -329,6 +342,40 @@ public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
     static string PackageSourceDirectoryName => "package-source";
 
     /// <summary>
+    /// Returns whether the manifest includes authored runtime content that must be merged into generated-core.
+    /// </summary>
+    /// <param name="manifest">Resolved build manifest to inspect.</param>
+    /// <returns>True when generated-core content is required.</returns>
+    static bool RequiresGeneratedCore(PlatformBuildManifest manifest) {
+        if (manifest == null) {
+            throw new ArgumentNullException(nameof(manifest));
+        }
+
+        return manifest.Scenes.Length > 0
+            || manifest.LooseAssets.Length > 0
+            || manifest.CodeModules.Length > 0
+            || manifest.CookedArtifacts.Length > 0
+            || manifest.ArtifactPlacements.Length > 0
+            || manifest.PlatformCookWorkItems.Length > 0;
+    }
+
+    /// <summary>
+    /// Returns whether the manifest includes packaged content that must already exist under the staged package-source tree.
+    /// </summary>
+    /// <param name="manifest">Resolved build manifest to inspect.</param>
+    /// <returns>True when staged package-source content is required.</returns>
+    static bool RequiresPackageSource(PlatformBuildManifest manifest) {
+        if (manifest == null) {
+            throw new ArgumentNullException(nameof(manifest));
+        }
+
+        return manifest.Scenes.Length > 0
+            || manifest.LooseAssets.Length > 0
+            || manifest.CookedArtifacts.Length > 0
+            || manifest.ArtifactPlacements.Length > 0;
+    }
+
+    /// <summary>
     /// Builds succeeded outcomes for all scenes in one manifest.
     /// </summary>
     /// <param name="scenes">Scenes included in the request.</param>
@@ -385,41 +432,4 @@ public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
         return Path.Combine(Path.GetFullPath(workingRootPath), PackageSourceDirectoryName);
     }
 
-    /// <summary>
-    /// Resolves the repository root that contains the Switch native build.
-    /// </summary>
-    /// <returns>Absolute Switch repository root path.</returns>
-    static string ResolveRepositoryRootPath() {
-        string environmentOverride = Environment.GetEnvironmentVariable(RepositoryRootEnvironmentVariableName) ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(environmentOverride) && IsRepositoryRootPath(environmentOverride)) {
-            return Path.GetFullPath(environmentOverride);
-        }
-
-        string path = AppContext.BaseDirectory;
-        while (!string.IsNullOrWhiteSpace(path)) {
-            if (IsRepositoryRootPath(path)) {
-                return Path.GetFullPath(path);
-            }
-
-            DirectoryInfo parent = Directory.GetParent(path);
-            path = parent?.FullName ?? string.Empty;
-        }
-
-        throw new DirectoryNotFoundException("Unable to resolve the Switch repository root.");
-    }
-
-    /// <summary>
-    /// Determines whether one path points at the Switch repository root.
-    /// </summary>
-    /// <param name="path">Candidate repository root path.</param>
-    /// <returns>True when the path looks like the Switch repository root.</returns>
-    static bool IsRepositoryRootPath(string path) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            return false;
-        }
-
-        string makefilePath = Path.Combine(path, "Makefile");
-        string bootHostPath = Path.Combine(path, "src", "platform", "switch", "SwitchBootHost.cpp");
-        return File.Exists(makefilePath) && File.Exists(bootHostPath);
-    }
 }

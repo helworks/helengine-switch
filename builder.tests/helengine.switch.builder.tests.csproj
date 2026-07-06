@@ -25,6 +25,10 @@
     <ProjectReference Include="$(HelengineRoot)\engine\helengine.baseplatform\helengine.baseplatform.csproj" SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\platform-plugin.json" Link="platform-plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <Target Name="ValidateHelengineRoot" BeforeTargets="CollectPackageReferences">
     <Error Condition="!Exists('$(HelengineRoot)\engine\helengine.baseplatform\helengine.baseplatform.csproj')" Text="helengine checkout not found. Set the HelengineRoot MSBuild property or HELENGINE_ROOT environment variable to a valid helengine checkout." />
   </Target>

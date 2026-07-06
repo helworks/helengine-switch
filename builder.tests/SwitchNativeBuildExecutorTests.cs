@@ -31,4 +31,27 @@ public sealed class SwitchNativeBuildExecutorTests {
         Assert.Contains("HELENGINE_SWITCH_ROMFS_ROOT=/workspace-staging/romfs", arguments);
         Assert.Contains("HELENGINE_CORE_CPP_ROOT=/generated-core", arguments);
     }
+
+    /// <summary>
+    /// Ensures the Docker command omits the generated-core mount and make variable when the builder is exporting one bootstrap package.
+    /// </summary>
+    [Fact]
+    public void CreateBuildArguments_without_generated_core_omits_generated_core_mount() {
+        SwitchBuildWorkspace workspace = new(
+            @"C:\repo\helengine-switch",
+            @"C:\repo\helengine-switch\tmp\working",
+            @"C:\repo\helengine-switch\out",
+            string.Empty,
+            @"C:\repo\helengine-switch\tmp\working\romfs",
+            "/workspace-staging/romfs",
+            string.Empty,
+            @"C:\repo\helengine-switch\build\helengine_switch.nro",
+            @"C:\repo\helengine-switch\out\helengine_switch.nro");
+
+        IReadOnlyList<string> arguments = SwitchNativeBuildExecutor.CreateBuildArguments(workspace);
+
+        Assert.DoesNotContain($"{workspace.GeneratedCoreRootPath}:{workspace.ContainerGeneratedCoreRootPath}", arguments);
+        Assert.DoesNotContain("HELENGINE_CORE_CPP_ROOT=/generated-core", arguments);
+        Assert.Contains("HELENGINE_SWITCH_ROMFS_ROOT=/workspace-staging/romfs", arguments);
+    }
 }

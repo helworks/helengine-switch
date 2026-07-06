@@ -10,10 +10,10 @@ public sealed class SwitchBuildWorkspace {
     /// <param name="repositoryRootPath">Switch repository root used by the native build.</param>
     /// <param name="workingRootPath">Temporary working root that contains staged inputs.</param>
     /// <param name="outputRootPath">Requested builder output root.</param>
-    /// <param name="generatedCoreRootPath">Generated-core C++ root provided by the editor build graph.</param>
+    /// <param name="generatedCoreRootPath">Generated-core C++ root provided by the editor build graph when authored runtime content is being embedded.</param>
     /// <param name="romFsRootPath">Staged RomFS root on the host filesystem.</param>
     /// <param name="containerRomFsRootPath">RomFS root path seen by the Docker container.</param>
-    /// <param name="containerGeneratedCoreRootPath">Generated-core root path seen by the Docker container.</param>
+    /// <param name="containerGeneratedCoreRootPath">Generated-core root path seen by the Docker container when authored runtime content is being embedded.</param>
     /// <param name="repositoryPackagePath">Path where the native build emits the repository-local NRO.</param>
     /// <param name="exportPackagePath">Final exported package path returned to the caller.</param>
     public SwitchBuildWorkspace(
@@ -32,27 +32,27 @@ public sealed class SwitchBuildWorkspace {
             throw new ArgumentException("Working root path is required.", nameof(workingRootPath));
         } else if (string.IsNullOrWhiteSpace(outputRootPath)) {
             throw new ArgumentException("Output root path is required.", nameof(outputRootPath));
-        } else if (string.IsNullOrWhiteSpace(generatedCoreRootPath)) {
-            throw new ArgumentException("Generated core root path is required.", nameof(generatedCoreRootPath));
         } else if (string.IsNullOrWhiteSpace(romFsRootPath)) {
             throw new ArgumentException("RomFS root path is required.", nameof(romFsRootPath));
         } else if (string.IsNullOrWhiteSpace(containerRomFsRootPath)) {
             throw new ArgumentException("Container RomFS root path is required.", nameof(containerRomFsRootPath));
-        } else if (string.IsNullOrWhiteSpace(containerGeneratedCoreRootPath)) {
-            throw new ArgumentException("Container generated core root path is required.", nameof(containerGeneratedCoreRootPath));
         } else if (string.IsNullOrWhiteSpace(repositoryPackagePath)) {
             throw new ArgumentException("Repository package path is required.", nameof(repositoryPackagePath));
         } else if (string.IsNullOrWhiteSpace(exportPackagePath)) {
             throw new ArgumentException("Export package path is required.", nameof(exportPackagePath));
+        } else if (string.IsNullOrWhiteSpace(generatedCoreRootPath) != string.IsNullOrWhiteSpace(containerGeneratedCoreRootPath)) {
+            throw new ArgumentException("Generated core host and container paths must both be provided or both be empty.");
         }
 
         RepositoryRootPath = Path.GetFullPath(repositoryRootPath);
         WorkingRootPath = Path.GetFullPath(workingRootPath);
         OutputRootPath = Path.GetFullPath(outputRootPath);
-        GeneratedCoreRootPath = Path.GetFullPath(generatedCoreRootPath);
+        GeneratedCoreRootPath = string.IsNullOrWhiteSpace(generatedCoreRootPath)
+            ? string.Empty
+            : Path.GetFullPath(generatedCoreRootPath);
         RomFsRootPath = Path.GetFullPath(romFsRootPath);
         ContainerRomFsRootPath = containerRomFsRootPath;
-        ContainerGeneratedCoreRootPath = containerGeneratedCoreRootPath;
+        ContainerGeneratedCoreRootPath = containerGeneratedCoreRootPath ?? string.Empty;
         RepositoryPackagePath = Path.GetFullPath(repositoryPackagePath);
         ExportPackagePath = Path.GetFullPath(exportPackagePath);
     }
@@ -73,7 +73,7 @@ public sealed class SwitchBuildWorkspace {
     public string OutputRootPath { get; }
 
     /// <summary>
-    /// Gets the generated-core C++ root provided by the editor build graph.
+    /// Gets the generated-core C++ root provided by the editor build graph when authored runtime content is being embedded.
     /// </summary>
     public string GeneratedCoreRootPath { get; }
 
@@ -88,9 +88,14 @@ public sealed class SwitchBuildWorkspace {
     public string ContainerRomFsRootPath { get; }
 
     /// <summary>
-    /// Gets the generated-core root path seen by the Docker container.
+    /// Gets the generated-core root path seen by the Docker container when authored runtime content is being embedded.
     /// </summary>
     public string ContainerGeneratedCoreRootPath { get; }
+
+    /// <summary>
+    /// Gets whether the prepared workspace includes one generated-core payload mount.
+    /// </summary>
+    public bool HasGeneratedCore => !string.IsNullOrWhiteSpace(GeneratedCoreRootPath);
 
     /// <summary>
     /// Gets the path where the native build emits the repository-local NRO.
