@@ -6,6 +6,7 @@
 
 #include "Core.hpp"
 #include "CoreInitializationOptions.hpp"
+#include "HostFileSystemContentStreamSource.hpp"
 #include "InputControlId.hpp"
 #include "InputDeviceKind.hpp"
 #include "InputGamepadButton.hpp"
@@ -19,6 +20,7 @@
 #include "StandardPlatformAction.hpp"
 #include "StandardPlatformActionBinding.hpp"
 #include "StandardPlatformInputConfiguration.hpp"
+#include "platform/switch/audio/SwitchAudioBackend.hpp"
 #include "platform/switch/SwitchInputBackend.hpp"
 #include "platform/switch/SwitchPackagedAssetLoader.hpp"
 #include "platform/switch/SwitchRenderManager2D.hpp"
@@ -99,6 +101,7 @@ namespace helengine::switch_platform {
         , EngineRenderManager3D(nullptr)
         , EngineRenderManager2D(nullptr)
         , EngineInputBackend(nullptr)
+        , EngineAudioBackend(nullptr)
         , EnginePlatformInfo(nullptr)
 #endif
     {
@@ -136,6 +139,9 @@ namespace helengine::switch_platform {
             RenderFrame();
         }
 
+#if HELENGINE_SWITCH_HAS_GENERATED_CORE
+        ShutdownCore();
+#endif
         if (HasMountedRomFs) {
             romfsExit();
         }
@@ -161,7 +167,7 @@ namespace helengine::switch_platform {
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
         EngineCore = new ::Core();
         EngineOptions = EngineCore->get_InitializationOptions();
-        EngineOptions->set_ContentRootPath("romfs:/");
+        EngineOptions->set_ContentStreamSource(new HostFileSystemContentStreamSource("romfs:/"));
         EngineOptions->set_UpdateOrderLayers(4);
         EngineOptions->set_RenderOrderLayers3D(4);
         EngineOptions->set_UpdateListInitialCapacity(64);
@@ -173,6 +179,7 @@ namespace helengine::switch_platform {
         EngineRenderManager3D = new SwitchRenderManager3D();
         EngineRenderManager2D = new SwitchRenderManager2D();
         EngineInputBackend = new SwitchInputBackend();
+        EngineAudioBackend = new SwitchAudioBackend();
         EnginePlatformInfo = new ::PlatformInfo("switch", "1.0.0");
         EngineRenderManager3D->AddWindow(0, FramebufferWidth, FramebufferHeight);
         EngineCore->Initialize(
@@ -181,6 +188,7 @@ namespace helengine::switch_platform {
             EngineInputBackend,
             EnginePlatformInfo,
             EngineOptions);
+        EngineCore->SetAudioBackend(EngineAudioBackend);
 #endif
     }
 
@@ -216,6 +224,16 @@ namespace helengine::switch_platform {
                 RuntimeReady = false;
                 CurrentFrameColor = BuildFailureColor();
             }
+        }
+#endif
+    }
+
+    /// Releases native runtime services that require explicit shutdown.
+    void SwitchBootHost::ShutdownCore() {
+#if HELENGINE_SWITCH_HAS_GENERATED_CORE
+        if (EngineAudioBackend != nullptr) {
+            delete EngineAudioBackend;
+            EngineAudioBackend = nullptr;
         }
 #endif
     }

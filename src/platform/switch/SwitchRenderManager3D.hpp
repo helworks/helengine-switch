@@ -8,6 +8,7 @@
 #include "RenderManager3D.hpp"
 
 class ContentManager;
+class IContentStreamSource;
 
 namespace helengine::switch_platform {
     class SwitchRuntimeMaterial;
@@ -21,14 +22,14 @@ namespace helengine::switch_platform {
         /// Builds a placeholder runtime material from one cooked platform-owned material payload.
         ::RuntimeMaterial* BuildMaterialFromCooked(::PlatformMaterialAsset* materialAsset) override;
 
-        /// Builds a placeholder runtime material from one cooked platform-owned material payload serialized on disk.
-        ::RuntimeMaterial* BuildMaterialFromCooked(std::string cookedAssetPath) override;
+        /// Builds a placeholder runtime material from one cooked platform-owned material payload serialized through the runtime content stream source.
+        ::RuntimeMaterial* BuildMaterialFromCooked(std::string cookedAssetPath, ::IContentStreamSource* contentStreamSource) override;
 
         /// Builds a placeholder runtime model from the authored model asset.
         ::RuntimeModel* BuildModelFromRaw(::ModelAsset* data) override;
 
-        /// Builds a placeholder runtime model from one serialized model payload on disk.
-        ::RuntimeModel* BuildModelFromCooked(std::string cookedAssetPath) override;
+        /// Builds a placeholder runtime model from one serialized model payload resolved through the runtime content stream source.
+        ::RuntimeModel* BuildModelFromCooked(std::string cookedAssetPath, ::IContentStreamSource* contentStreamSource) override;
 
         /// Releases one Switch runtime model after the final scene reference is removed.
         void ReleaseModel(::RuntimeModel* model) override;

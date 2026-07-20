@@ -8,6 +8,21 @@ namespace helengine.switch_platform.builder;
 /// </summary>
 public static class SwitchPlatformDefinitionFactory {
     /// <summary>
+    /// Generic native numeric type remaps required by C++ platforms that cannot emit System.Numerics runtime types directly.
+    /// </summary>
+    const string NativeNumericTypeRemaps = "System.Numerics.Vector2=helengine.float2;System.Numerics.Vector3=helengine.float3;System.Numerics.Vector4=helengine.float4;System.Numerics.Quaternion=helengine.float4";
+
+    /// <summary>
+    /// Generic generated-math-convention value that instructs the shared C++ generator to emit native column-vector math helpers.
+    /// </summary>
+    const string NativeColumnVectorMathConvention = "native-column-vector";
+
+    /// <summary>
+    /// Pointer-size contract forwarded to the shared C++ generator for Nintendo Switch native output.
+    /// </summary>
+    const string PointerSizeInBytes = "8";
+
+    /// <summary>
     /// Creates the Switch platform definition.
     /// </summary>
     /// <returns>The Switch platform definition.</returns>
@@ -150,6 +165,27 @@ public static class SwitchPlatformDefinitionFactory {
                             "Load Native Runtime Metadata",
                             PlatformSettingKind.Boolean,
                             "true",
+                            true,
+                            []),
+                        new PlatformSettingDefinition(
+                            "generated-math-convention",
+                            "Generated Math Convention",
+                            PlatformSettingKind.Text,
+                            NativeColumnVectorMathConvention,
+                            true,
+                            []),
+                        new PlatformSettingDefinition(
+                            "pointer-size-bytes",
+                            "Pointer Size (Bytes)",
+                            PlatformSettingKind.Text,
+                            PointerSizeInBytes,
+                            true,
+                            []),
+                        new PlatformSettingDefinition(
+                            "type-remaps",
+                            "Type Remaps",
+                            PlatformSettingKind.Text,
+                            NativeNumericTypeRemaps,
                             true,
                             [])
                     ])

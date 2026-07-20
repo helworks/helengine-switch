@@ -10,7 +10,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 
 TARGET := helengine_switch
 BUILD := build
-SOURCES := src src/platform/switch
+SOURCES := src src/platform/switch src/platform/switch/audio
 DATA :=
 INCLUDES := src
 ROMFS :=

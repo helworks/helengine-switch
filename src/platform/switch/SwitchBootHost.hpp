@@ -14,6 +14,10 @@ class RenderManager3D;
 #endif
 
 namespace helengine::switch_platform {
+    class SwitchAudioBackend;
+}
+
+namespace helengine::switch_platform {
     /// Owns the Switch native framebuffer bootstrap and generated-core-aware presentation loop.
     class SwitchBootHost {
     public:
@@ -38,6 +42,9 @@ namespace helengine::switch_platform {
 
         /// Updates the generated-core runtime for one frame when available.
         void UpdateRuntimeFrame();
+
+        /// Releases native runtime services that require explicit shutdown.
+        void ShutdownCore();
 
         /// Renders one bootstrap or runtime frame into the active framebuffer.
         void RenderFrame();
@@ -87,6 +94,9 @@ namespace helengine::switch_platform {
 
         /// Stores the Switch input backend used by generated core.
         ::IInputBackend* EngineInputBackend;
+
+        /// Stores the Switch audio backend used by generated core scene audio sources.
+        SwitchAudioBackend* EngineAudioBackend;
 
         /// Stores the runtime platform metadata reported to generated core.
         ::PlatformInfo* EnginePlatformInfo;

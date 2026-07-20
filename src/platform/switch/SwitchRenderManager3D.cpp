@@ -5,9 +5,9 @@
 
 #include "Asset.hpp"
 #include "AssetSerializer.hpp"
+#include "IContentStreamSource.hpp"
 #include "platform/switch/SwitchRuntimeMaterial.hpp"
 #include "platform/switch/SwitchRuntimeModel.hpp"
-#include "system/io/file.hpp"
 
 namespace helengine::switch_platform {
     namespace {
@@ -37,22 +37,30 @@ namespace helengine::switch_platform {
         return runtimeMaterial;
     }
 
-    /// Builds a placeholder runtime material from one cooked platform-owned material payload serialized on disk.
-    ::RuntimeMaterial* SwitchRenderManager3D::BuildMaterialFromCooked(std::string cookedAssetPath) {
-        if (!File::Exists(cookedAssetPath)) {
-            throw std::runtime_error("Switch cooked material asset was not found: " + cookedAssetPath);
+    /// Builds a placeholder runtime material from one cooked platform-owned material payload serialized through the runtime content stream source.
+    ::RuntimeMaterial* SwitchRenderManager3D::BuildMaterialFromCooked(std::string cookedAssetPath, ::IContentStreamSource* contentStreamSource) {
+        if (cookedAssetPath.empty()) {
+            throw std::invalid_argument("Switch cooked material asset path is required.");
+        }
+        if (contentStreamSource == nullptr) {
+            throw std::invalid_argument("Switch content stream source is required for cooked material loading.");
         }
 
-        FileStream* stream = File::OpenRead(cookedAssetPath);
+        ::Stream* stream = contentStreamSource->OpenRead(cookedAssetPath);
         if (stream == nullptr) {
             throw std::runtime_error("Switch cooked material asset could not be opened: " + cookedAssetPath);
         }
 
-        ::Asset* asset = AssetSerializer::Deserialize(stream);
-        delete stream;
-        ::RuntimeMaterial* runtimeMaterial = BuildMaterialFromCooked(static_cast<::PlatformMaterialAsset*>(asset));
-        delete asset;
-        return runtimeMaterial;
+        try {
+            ::Asset* asset = AssetSerializer::Deserialize(stream);
+            stream->Dispose();
+            ::RuntimeMaterial* runtimeMaterial = BuildMaterialFromCooked(static_cast<::PlatformMaterialAsset*>(asset));
+            delete asset;
+            return runtimeMaterial;
+        } catch (...) {
+            stream->Dispose();
+            throw;
+        }
     }
 
     /// Builds a placeholder runtime model from the authored model asset.
@@ -64,22 +72,30 @@ namespace helengine::switch_platform {
         return new SwitchRuntimeModel();
     }
 
-    /// Builds a placeholder runtime model from one serialized model payload on disk.
-    ::RuntimeModel* SwitchRenderManager3D::BuildModelFromCooked(std::string cookedAssetPath) {
-        if (!File::Exists(cookedAssetPath)) {
-            throw std::runtime_error("Switch cooked model asset was not found: " + cookedAssetPath);
+    /// Builds a placeholder runtime model from one serialized model payload resolved through the runtime content stream source.
+    ::RuntimeModel* SwitchRenderManager3D::BuildModelFromCooked(std::string cookedAssetPath, ::IContentStreamSource* contentStreamSource) {
+        if (cookedAssetPath.empty()) {
+            throw std::invalid_argument("Switch cooked model asset path is required.");
+        }
+        if (contentStreamSource == nullptr) {
+            throw std::invalid_argument("Switch content stream source is required for cooked model loading.");
         }
 
-        FileStream* stream = File::OpenRead(cookedAssetPath);
+        ::Stream* stream = contentStreamSource->OpenRead(cookedAssetPath);
         if (stream == nullptr) {
             throw std::runtime_error("Switch cooked model asset could not be opened: " + cookedAssetPath);
         }
 
-        ::Asset* asset = AssetSerializer::Deserialize(stream);
-        delete stream;
-        ::RuntimeModel* runtimeModel = BuildModelFromRaw(static_cast<::ModelAsset*>(asset));
-        delete asset;
-        return runtimeModel;
+        try {
+            ::Asset* asset = AssetSerializer::Deserialize(stream);
+            stream->Dispose();
+            ::RuntimeModel* runtimeModel = BuildModelFromRaw(static_cast<::ModelAsset*>(asset));
+            delete asset;
+            return runtimeModel;
+        } catch (...) {
+            stream->Dispose();
+            throw;
+        }
     }
 
     /// Releases one Switch runtime model after the final scene reference is removed.

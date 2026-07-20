@@ -35,7 +35,12 @@ public sealed class SwitchPlatformAssetBuilderTests {
         PlatformBuildProfileDefinition buildProfile = Assert.Single(
             builder.Definition.BuildProfiles,
             profile => profile.ProfileId == "debug");
+        PlatformCodegenProfileDefinition codegenProfile = Assert.Single(
+            builder.Definition.CodegenProfiles,
+            profile => profile.ProfileId == "default");
         Assert.Contains(buildProfile.Settings, setting => setting.SettingId == "startup-clear-color");
+        Assert.Contains(codegenProfile.Settings, setting => setting.SettingId == "generated-math-convention");
+        Assert.Contains(codegenProfile.Settings, setting => setting.SettingId == "pointer-size-bytes");
 
         Assert.Contains(builder.Definition.ComponentSupportRules, supportRule =>
             supportRule.ComponentTypeId == "helengine.meshcomponent" &&
