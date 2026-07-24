@@ -5,11 +5,16 @@ This repository contains the Nintendo Switch platform host and builder integrati
 ## Build
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File ..\helengine\artifacts\build-platform.ps1 `
+dotnet run --project ..\helengine\tools\build-waiter\helengine.buildwaiter.csproj -- `
+  --output ..\helprojs\city\switch-build `
+  --require helengine_switch.nro `
+  -- powershell -NoProfile -ExecutionPolicy Bypass -File ..\helengine\scripts\build-platform.ps1 `
   -Project ..\helprojs\city\project.heproj `
   -Platform switch `
   -Output ..\helprojs\city\switch-build
 ```
+
+The Build Waiter returns successfully only after `helengine_switch.nro` is fresh and non-empty.
 
 ## Run In Emulator
 
