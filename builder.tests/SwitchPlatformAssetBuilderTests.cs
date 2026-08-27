@@ -84,7 +84,9 @@ public sealed class SwitchPlatformAssetBuilderTests {
                 [],
                 [],
                 [],
-                new PlatformContainerWritePlan(string.Empty, []));
+                new PlatformContainerWritePlan(string.Empty, []),
+                Array.Empty<PlatformCookWorkItem>(),
+                PlatformBuildRuntimeFeatureManifest.Empty);
 
             PlatformBuildRequest request = new(
                 manifest,
@@ -159,8 +161,15 @@ public sealed class SwitchPlatformAssetBuilderTests {
                 "1.0.0",
                 "switch",
                 "1.0.0",
+                string.Empty,
                 Array.Empty<PlatformBuildScene>(),
-                Array.Empty<PlatformBuildAsset>());
+                Array.Empty<PlatformBuildAsset>(),
+                Array.Empty<PlatformBuildArtifact>(),
+                Array.Empty<PlatformBuildCodeModule>(),
+                Array.Empty<PlatformArtifactPlacement>(),
+                new PlatformContainerWritePlan(string.Empty, []),
+                Array.Empty<PlatformCookWorkItem>(),
+                PlatformBuildRuntimeFeatureManifest.Empty);
 
             PlatformBuildRequest request = new(
                 manifest,

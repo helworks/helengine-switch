@@ -58,7 +58,9 @@ public sealed class SwitchRuntimeNativeManifestWriterTests : IDisposable {
             [],
             [],
             [],
-            new PlatformContainerWritePlan(string.Empty, []));
+            new PlatformContainerWritePlan(string.Empty, []),
+            Array.Empty<PlatformCookWorkItem>(),
+            PlatformBuildRuntimeFeatureManifest.Empty);
         manifest.StandardPlatformInputConfiguration = new StandardPlatformInputConfiguration([
             new StandardPlatformActionBinding(
                 StandardPlatformAction.Accept,

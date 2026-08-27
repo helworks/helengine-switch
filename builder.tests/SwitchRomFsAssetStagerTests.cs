@@ -66,7 +66,9 @@ public sealed class SwitchRomFsAssetStagerTests : IDisposable {
             [],
             [],
             [],
-            new PlatformContainerWritePlan(string.Empty, []));
+            new PlatformContainerWritePlan(string.Empty, []),
+            Array.Empty<PlatformCookWorkItem>(),
+            PlatformBuildRuntimeFeatureManifest.Empty);
 
         SwitchRomFsAssetStager stager = new();
         stager.Stage(manifest, sourceRootPath, romFsRootPath);
