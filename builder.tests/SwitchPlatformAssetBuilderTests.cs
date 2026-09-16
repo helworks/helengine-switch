@@ -14,6 +14,22 @@ namespace helengine.switch_platform.builder.tests;
 /// </summary>
 public sealed class SwitchPlatformAssetBuilderTests {
     /// <summary>
+    /// Ensures the native Switch boot host receives the generated host filesystem source it references outside managed reachability analysis.
+    /// </summary>
+    [Fact]
+    public void Definition_force_enables_host_file_system_runtime_feature() {
+        SwitchPlatformAssetBuilder builder = new();
+        PlatformCodegenProfileDefinition codegenProfile = Assert.Single(
+            builder.Definition.CodegenProfiles,
+            profile => profile.ProfileId == "default");
+        PlatformSettingDefinition enabledFeatures = Assert.Single(
+            codegenProfile.Settings,
+            setting => setting.SettingId == PlatformCodegenSettingIds.EnabledFeatures);
+
+        Assert.Equal("host_file_system", enabledFeatures.DefaultValue);
+    }
+
+    /// <summary>
     /// Ensures the Switch builder descriptor and definition expose the expected identity and runtime packaging metadata.
     /// </summary>
     [Fact]
