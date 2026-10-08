@@ -17,6 +17,7 @@ public sealed class SwitchNativeBuildExecutor : ISwitchNativeBuildExecutor {
             throw new ArgumentNullException(nameof(workspace));
         }
 
+        Directory.CreateDirectory(workspace.NativeObjectCacheRootPath);
         ProcessStartInfo startInfo = CreateStartInfo(workspace);
         NativeProcessRunResult result = new NativeProcessRunner().Run(startInfo, cancellationToken);
         if (result.ExitCode != 0) {
@@ -69,12 +70,13 @@ public sealed class SwitchNativeBuildExecutor : ISwitchNativeBuildExecutor {
             "-v",
             $"{workspace.RepositoryRootPath}:/workspace",
             "-v",
+            $"{workspace.NativeObjectCacheRootPath}:/workspace/build",
+            "-v",
             $"{workspace.RomFsRootPath}:{workspace.ContainerRomFsRootPath}",
             "-w",
             "/workspace",
             "helengine-switch",
             "make",
-            "clean",
             "all",
             $"HELENGINE_SWITCH_ROMFS_ROOT={workspace.ContainerRomFsRootPath}"
         ];

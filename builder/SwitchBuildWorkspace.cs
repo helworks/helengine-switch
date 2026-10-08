@@ -9,6 +9,7 @@ public sealed class SwitchBuildWorkspace {
     /// </summary>
     /// <param name="repositoryRootPath">Switch repository root used by the native build.</param>
     /// <param name="workingRootPath">Temporary working root that contains staged inputs.</param>
+    /// <param name="nativeObjectCacheRootPath">Persistent native build directory for this project and profile.</param>
     /// <param name="outputRootPath">Requested builder output root.</param>
     /// <param name="generatedCoreRootPath">Generated-core C++ root provided by the editor build graph when authored runtime content is being embedded.</param>
     /// <param name="romFsRootPath">Staged RomFS root on the host filesystem.</param>
@@ -25,7 +26,8 @@ public sealed class SwitchBuildWorkspace {
         string containerRomFsRootPath,
         string containerGeneratedCoreRootPath,
         string repositoryPackagePath,
-        string exportPackagePath) {
+        string exportPackagePath,
+        string nativeObjectCacheRootPath = "") {
         if (string.IsNullOrWhiteSpace(repositoryRootPath)) {
             throw new ArgumentException("Repository root path is required.", nameof(repositoryRootPath));
         } else if (string.IsNullOrWhiteSpace(workingRootPath)) {
@@ -45,6 +47,9 @@ public sealed class SwitchBuildWorkspace {
         }
 
         RepositoryRootPath = Path.GetFullPath(repositoryRootPath);
+        NativeObjectCacheRootPath = string.IsNullOrWhiteSpace(nativeObjectCacheRootPath)
+            ? Path.Combine(RepositoryRootPath, "build")
+            : Path.GetFullPath(nativeObjectCacheRootPath);
         WorkingRootPath = Path.GetFullPath(workingRootPath);
         OutputRootPath = Path.GetFullPath(outputRootPath);
         GeneratedCoreRootPath = string.IsNullOrWhiteSpace(generatedCoreRootPath)
@@ -61,6 +66,11 @@ public sealed class SwitchBuildWorkspace {
     /// Gets the Switch repository root used by the native build.
     /// </summary>
     public string RepositoryRootPath { get; }
+
+    /// <summary>
+    /// Gets the persistent native build directory for this project and profile.
+    /// </summary>
+    public string NativeObjectCacheRootPath { get; }
 
     /// <summary>
     /// Gets the temporary working root that contains staged inputs.

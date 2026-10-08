@@ -113,10 +113,17 @@ else
 .PHONY: all
 
 DEPENDS := $(OFILES:.o=.d)
+NATIVE_BUILD_CONFIG := $(CURDIR)/.native-build-config
+.PHONY: FORCE_NATIVE_BUILD_CONFIG
+FORCE_NATIVE_BUILD_CONFIG:
+$(NATIVE_BUILD_CONFIG): FORCE_NATIVE_BUILD_CONFIG
+	@printf '%s\n' '$(CC) $(shell $(CC) --version | head -n 1) $(CXX) $(shell $(CXX) --version | head -n 1) $(CFLAGS) $(CXXFLAGS) $(LDFLAGS) $(HELENGINE_CORE_CPP_ROOT)' > $@.tmp
+	@if ! cmp -s $@.tmp $@; then mv $@.tmp $@; else rm $@.tmp; fi
+$(OFILES) $(OUTPUT).elf: $(NATIVE_BUILD_CONFIG)
 
 all: $(OUTPUT).nro
 
-$(OUTPUT).nro: $(OUTPUT).elf
+$(OUTPUT).nro: $(OUTPUT).elf $(shell find $(ROMFS) -type f 2>/dev/null)
 $(OUTPUT).elf: $(OFILES)
 
 -include $(DEPENDS)

@@ -26,7 +26,8 @@ public sealed class SwitchNativeBuildExecutorTests {
 
         Assert.Contains("helengine-switch", arguments);
         Assert.Contains("make", arguments);
-        Assert.Contains("clean", arguments);
+        Assert.DoesNotContain("clean", arguments);
+        Assert.Contains(arguments, argument => argument.Contains(":/workspace/build", StringComparison.Ordinal));
         Assert.Contains("all", arguments);
         Assert.Contains("HELENGINE_SWITCH_ROMFS_ROOT=/workspace-staging/romfs", arguments);
         Assert.Contains("HELENGINE_CORE_CPP_ROOT=/generated-core", arguments);

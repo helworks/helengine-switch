@@ -46,6 +46,8 @@ public sealed class SwitchRomFsAssetStagerTests : IDisposable {
             "project",
             "1.0.0",
             "1.0.0",
+            "switch",
+            "1.0.0",
             "startup",
             [
                 new PlatformBuildScene(

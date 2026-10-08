@@ -189,8 +189,9 @@ public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
             romFsRootPath,
             "/workspace-staging/romfs",
             hasGeneratedCore ? "/generated-core" : string.Empty,
-            Path.Combine(repositoryRootPath, "build", "helengine_switch.nro"),
-            Path.Combine(request.OutputRoot, "helengine_switch.nro"));
+            Path.Combine(string.IsNullOrWhiteSpace(request.NativeObjectCacheRoot) ? Path.Combine(repositoryRootPath, "build") : request.NativeObjectCacheRoot, "helengine_switch.nro"),
+            Path.Combine(request.OutputRoot, "helengine_switch.nro"),
+            request.NativeObjectCacheRoot);
         NativeBuildExecutor.Build(workspace, cancellationToken);
         if (!File.Exists(workspace.RepositoryPackagePath)) {
             throw new FileNotFoundException("The Switch native build did not produce an NRO.", workspace.RepositoryPackagePath);
