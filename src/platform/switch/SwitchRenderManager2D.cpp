@@ -7,13 +7,13 @@
 #include "platform/switch/SwitchRuntimeTexture2D.hpp"
 
 namespace helengine::switch_platform {
-    /// Builds a placeholder Switch runtime texture from raw texture metadata.
+    /// Builds an independently owned Switch texture with validated native storage and decoded pixels.
     ::RuntimeTexture* SwitchRenderManager2D::BuildTextureFromRaw(::TextureAsset* data) {
         if (data == nullptr) {
             throw std::invalid_argument("Switch raw texture asset is required.");
         }
 
-        return new SwitchRuntimeTexture2D();
+        return new SwitchRuntimeTexture2D(data);
     }
 
     /// Releases one Switch runtime texture previously created by this renderer.

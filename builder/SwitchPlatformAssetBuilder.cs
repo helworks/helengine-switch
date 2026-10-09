@@ -145,6 +145,13 @@ public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
             ? SwitchRepositoryRootResolver.ResolveRepositoryRootPath()
             : RepositoryRootPath;
         string packageSourceRootPath = ResolvePackageSourceRootPath(request.WorkingRoot);
+        if (request.Manifest.PlatformCookWorkItems.Length > 0) {
+            Directory.CreateDirectory(packageSourceRootPath);
+            SwitchTextureWorkItemCooker cooker = new SwitchTextureWorkItemCooker();
+            foreach (PlatformCookWorkItem workItem in request.Manifest.PlatformCookWorkItems) {
+                cancellationToken.ThrowIfCancellationRequested(); cooker.Cook(workItem, packageSourceRootPath);
+            }
+        }
         bool hasPackageSource = Directory.Exists(packageSourceRootPath);
         bool requiresPackageSource = RequiresPackageSource(request.Manifest);
         if (!hasPackageSource && requiresPackageSource) {

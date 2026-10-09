@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <None Include="..\platform-plugin.json" Link="platform-plugin.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures\bntx\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="ValidateHelengineRoot" BeforeTargets="CollectPackageReferences">

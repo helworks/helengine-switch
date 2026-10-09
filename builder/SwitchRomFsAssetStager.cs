@@ -38,6 +38,12 @@ public sealed class SwitchRomFsAssetStager {
         for (int index = 0; index < manifest.LooseAssets.Length; index++) {
             StagePayloadReference(manifest.LooseAssets[index].PayloadReference, sourceRootPrefix, fullRomFsRootPath, stagedRelativePaths);
         }
+        foreach (PlatformCookWorkItem item in manifest.PlatformCookWorkItems) {
+            StagePayloadReference(new PlatformBuildPayloadReference(item.OutputLogicalArtifactId, item.OutputRelativePath), sourceRootPrefix, fullRomFsRootPath, stagedRelativePaths);
+        }
+        foreach (PlatformBuildArtifact artifact in manifest.CookedArtifacts) {
+            StagePayloadReference(new PlatformBuildPayloadReference(artifact.LogicalArtifactId, artifact.RelativePath), sourceRootPrefix, fullRomFsRootPath, stagedRelativePaths);
+        }
     }
 
     /// <summary>

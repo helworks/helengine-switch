@@ -231,6 +231,14 @@ public static class SwitchPlatformDefinitionFactory {
                 RuntimeMaterialResolutionMode.CookedPlatformOwned,
                 true,
                 PackagedPathPolicy.ContentRelativeOnly),
-            PlatformHostDebugCapability.CreateDefault());
+            PlatformHostDebugCapability.CreateDefault(),
+            assetCookCapabilities: [
+                new PlatformAssetCookCapabilityDefinition("texture", "runtime-texture", PlatformAssetCookOwnershipKind.BuilderOwned,
+                    "switch-texture", "{\"maxResolution\":0,\"colorFormat\":\"Rgba32\",\"alphaPrecision\":\"A8\"}",
+                    SwitchTextureFormatCapabilities.Create(), ".hetex", PlatformAssetNamingPolicy.RuntimeAssetIdHex16, null),
+                new PlatformAssetCookCapabilityDefinition("font-atlas-texture", "runtime-texture", PlatformAssetCookOwnershipKind.BuilderOwned,
+                    "switch-font-atlas-texture", "{\"maxResolution\":0,\"colorFormat\":\"Rgba32\",\"alphaPrecision\":\"A8\"}",
+                    SwitchTextureFormatCapabilities.Create(), ".hetex", PlatformAssetNamingPolicy.RuntimeAssetIdHex16, null)
+            ]);
     }
 }
