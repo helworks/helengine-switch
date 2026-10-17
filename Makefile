@@ -3,6 +3,7 @@ $(error "Please set DEVKITPRO in your environment. export DEVKITPRO=/opt/devkitp
 endif
 
 HELENGINE_CORE_CPP_ROOT ?=
+.DEFAULT_GOAL := all
 HELENGINE_SWITCH_ROMFS_ROOT ?=
 TOPDIR ?= $(CURDIR)
 

@@ -2,6 +2,7 @@
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
 #include <stdexcept>
+#include <cstdio>
 #include <string>
 
 #include "Core.hpp"
@@ -123,9 +124,10 @@ namespace helengine::switch_platform {
             } else {
                 CurrentFrameColor = BuildFailureColor();
             }
-        } catch (...) {
+        } catch (const std::exception& error) {
             RuntimeReady = false;
             CurrentFrameColor = BuildFailureColor();
+            std::fprintf(stderr,"HELENGINE_SWITCH_BOOT_FATAL: %s\n",error.what());
         }
 #endif
 
@@ -211,6 +213,7 @@ namespace helengine::switch_platform {
         }
 
         EngineCore->get_SceneManager()->LoadScene(startupSceneId, SceneLoadMode::Single);
+        std::printf("HELENGINE_SWITCH_MENU_LOADED: %s\n",startupSceneId.c_str());
 #endif
     }
 
@@ -270,6 +273,22 @@ namespace helengine::switch_platform {
                 pixels[y * stridePixels + x] = color;
             }
         }
+
+#if HELENGINE_SWITCH_HAS_GENERATED_CORE
+        if(RuntimeReady && EngineCore!=nullptr) {
+            auto* renderer=static_cast<SwitchRenderManager2D*>(EngineRenderManager2D);
+            renderer->BeginFrame(pixels,FramebufferWidth,FramebufferHeight,stridePixels);
+            try {
+                EngineCore->Draw(); renderer->Draw(); renderer->EndFrame();
+                static uint64_t frame=0;
+                if(frame++==0 || frame%600==0) std::printf("HELENGINE_SWITCH_MENU_FRAME: %llu blended_samples=%llu\n",static_cast<unsigned long long>(frame),static_cast<unsigned long long>(renderer->GetWrittenPixels()));
+            }
+            catch(const std::exception& error) {
+                renderer->EndFrame(); RuntimeReady=false; CurrentFrameColor=BuildFailureColor();
+                std::fprintf(stderr,"HELENGINE_SWITCH_RENDER_FATAL: %s\n",error.what());
+            }
+        }
+#endif
 
         framebufferEnd(&FramebufferState);
     }

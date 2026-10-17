@@ -15,7 +15,12 @@ public sealed class SwitchTextureWorkItemCooker {
         if (Path.IsPathRooted(relative) || !destination.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Switch cooked output must remain within package-source.");
         bool fontAtlas = item.SourceAssetKind == "font-atlas-texture";
         string source = item.SourceAssetPath;
-        if (fontAtlas) {
+        // Editor-owned font externalization supplies the authoritative serialized atlas;
+        // the accompanying packaged font deliberately has no embedded source texture.
+        string sourceExtension = Path.GetExtension(source);
+        bool serializedAtlas = string.Equals(sourceExtension, ".hetex", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sourceExtension, ".hasset", StringComparison.OrdinalIgnoreCase);
+        if (fontAtlas && !serializedAtlas) {
             string packagedFont = Path.ChangeExtension(destination, ".hefont");
             if (File.Exists(packagedFont)) source = packagedFont;
         }
