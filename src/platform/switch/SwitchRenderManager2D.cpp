@@ -2,6 +2,7 @@
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
 #include <stdexcept>
+#include <memory>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -24,6 +25,10 @@
 #include "ITextDrawable2D.hpp"
 
 #include "TextureAsset.hpp"
+#include "AssetSerializer.hpp"
+#include "IContentStreamSource.hpp"
+#include "runtime/finally.hpp"
+#include "runtime/native_disposable.hpp"
 #include "platform/switch/SwitchRuntimeTexture2D.hpp"
 
 namespace helengine::switch_platform {
@@ -70,6 +75,33 @@ namespace helengine::switch_platform {
         }
 
         return new SwitchRuntimeTexture2D(data);
+    }
+
+    /// Builds independent runtime pixels while disposing the source stream and transient decoded asset on every exit path.
+    ::RuntimeTexture* SwitchRenderManager2D::BuildTextureFromCooked(HeCppString cookedAssetPath, ::IContentStreamSource* contentStreamSource) {
+        if (::String::IsNullOrWhiteSpace(cookedAssetPath)) {
+            throw std::invalid_argument("Switch cooked texture path is required.");
+        }
+        if (contentStreamSource == nullptr) {
+            throw std::invalid_argument("Switch cooked texture content source is required.");
+        }
+
+        std::unique_ptr<::Stream> stream(contentStreamSource->OpenRead(cookedAssetPath));
+        if (stream == nullptr) {
+            throw std::runtime_error("Switch cooked texture content source returned a null stream.");
+        }
+        auto streamCleanup = he_cpp_make_scope_exit([&]() { stream->Dispose(); });
+        std::unique_ptr<::Asset> asset(AssetSerializer::Deserialize(stream.get()));
+        auto assetCleanup = he_cpp_make_scope_exit([&]() {
+            if (auto* disposable = dynamic_cast<::IDisposable*>(asset.get())) {
+                disposable->Dispose();
+            }
+        });
+        auto* textureAsset = dynamic_cast<::TextureAsset*>(asset.get());
+        if (textureAsset == nullptr) {
+            throw std::invalid_argument("Switch cooked texture payload did not deserialize as TextureAsset.");
+        }
+        return BuildTextureFromRaw(textureAsset);
     }
 
     /// Releases one Switch runtime texture previously created by this renderer.

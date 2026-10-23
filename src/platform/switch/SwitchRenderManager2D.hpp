@@ -36,6 +36,9 @@ namespace helengine::switch_platform {
         /// Builds an independently owned Switch runtime texture from raw texture metadata.
         ::RuntimeTexture* BuildTextureFromRaw(::TextureAsset* data) override;
 
+        /// Reads one cooked texture through the active content source and releases transient asset storage after construction.
+        ::RuntimeTexture* BuildTextureFromCooked(HeCppString cookedAssetPath, ::IContentStreamSource* contentStreamSource) override;
+
         /// Releases one Switch runtime texture previously created by this renderer.
         void ReleaseTexture(::RuntimeTexture* texture) override;
 
