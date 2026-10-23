@@ -37,7 +37,7 @@ namespace helengine::switch_platform {
         /// Runs the steady-state Switch frame loop.
         int RunMainLoop();
 
-        /// Mounts the packaged RomFS image from the current process.
+        /// Mounts the application's own RomFS through the libnx NRO/NSO-aware entry point.
         bool MountRomFs();
 
         /// Updates the generated-core runtime for one frame when available.

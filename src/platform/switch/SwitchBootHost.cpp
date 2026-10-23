@@ -1,8 +1,10 @@
 #include "platform/switch/SwitchBootHost.hpp"
 
+#include <cstdio>
+#include <cstring>
+
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
 #include <stdexcept>
-#include <cstdio>
 #include <string>
 
 #include "Core.hpp"
@@ -35,6 +37,14 @@ namespace helengine::switch_platform {
     namespace {
         constexpr u32 FramebufferWidth = 1280;
         constexpr u32 FramebufferHeight = 720;
+
+        /// Sends bounded startup and failure diagnostics to the SDK debug channel and stderr.
+        void WriteRuntimeDiagnostic(const char* stage, const char* detail) {
+            char message[1024];
+            std::snprintf(message, sizeof(message), "HELENGINE_SWITCH_%s: %s\n", stage, detail);
+            svcOutputDebugString(message, std::strlen(message));
+            std::fputs(message, stderr);
+        }
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
         /// Builds one runtime scene catalog from the generated native scene-manifest entries.
@@ -116,18 +126,22 @@ namespace helengine::switch_platform {
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
         try {
+            WriteRuntimeDiagnostic("BOOT", "framebuffer ready; mounting application RomFS");
             if (MountRomFs()) {
+                WriteRuntimeDiagnostic("BOOT", "initializing Core");
                 InitializeCore();
+                WriteRuntimeDiagnostic("BOOT", "Core initialized; loading startup scene");
                 LoadStartupScene();
                 RuntimeReady = true;
                 CurrentFrameColor = BuildRuntimeReadyColor();
+                WriteRuntimeDiagnostic("BOOT", "startup complete");
             } else {
                 CurrentFrameColor = BuildFailureColor();
             }
         } catch (const std::exception& error) {
             RuntimeReady = false;
             CurrentFrameColor = BuildFailureColor();
-            std::fprintf(stderr,"HELENGINE_SWITCH_BOOT_FATAL: %s\n",error.what());
+            WriteRuntimeDiagnostic("BOOT_FATAL", error.what());
         }
 #endif
 
@@ -154,9 +168,13 @@ namespace helengine::switch_platform {
         return RuntimeReady ? 0 : 1;
     }
 
-    /// Mounts the packaged RomFS image from the current process.
+    /// Mounts the application's embedded NRO RomFS or current-process NSO storage through libnx.
     bool SwitchBootHost::MountRomFs() {
-        if (R_FAILED(romfsMountFromCurrentProcess("romfs"))) {
+        const Result result = romfsInit();
+        char detail[128];
+        std::snprintf(detail, sizeof(detail), "romfsInit=0x%08x envIsNso=%d", static_cast<unsigned int>(result), envIsNso());
+        WriteRuntimeDiagnostic("ROMFS", detail);
+        if (R_FAILED(result)) {
             return false;
         }
 
@@ -200,20 +218,23 @@ namespace helengine::switch_platform {
         SwitchPackagedAssetLoader packagedAssetLoader("romfs:/");
         const char* startupSceneRelativePath = he_get_runtime_startup_scene_relative_path();
         if (startupSceneRelativePath == nullptr || startupSceneRelativePath[0] == '\0') {
+            WriteRuntimeDiagnostic("STARTUP_SCENE", "manifest contains no startup scene path");
             return;
         }
 
         if (!packagedAssetLoader.AssetExists(startupSceneRelativePath)) {
+            WriteRuntimeDiagnostic("STARTUP_SCENE_MISSING", startupSceneRelativePath);
             return;
         }
 
         std::string startupSceneId = ResolveStartupSceneId(startupSceneRelativePath);
         if (startupSceneId.empty()) {
+            WriteRuntimeDiagnostic("STARTUP_SCENE_UNRESOLVED", startupSceneRelativePath);
             return;
         }
 
         EngineCore->get_SceneManager()->LoadScene(startupSceneId, SceneLoadMode::Single);
-        std::printf("HELENGINE_SWITCH_MENU_LOADED: %s\n",startupSceneId.c_str());
+        WriteRuntimeDiagnostic("MENU_LOADED", startupSceneId.c_str());
 #endif
     }
 
@@ -221,11 +242,24 @@ namespace helengine::switch_platform {
     void SwitchBootHost::UpdateRuntimeFrame() {
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
         if (RuntimeReady && EngineCore != nullptr) {
+            static bool firstUpdate = true;
             try {
+                if (firstUpdate) {
+                    WriteRuntimeDiagnostic("UPDATE", "first update starting");
+                }
                 EngineCore->Update();
+                if (firstUpdate) {
+                    WriteRuntimeDiagnostic("UPDATE", "first update complete");
+                    firstUpdate = false;
+                }
+            } catch (const std::exception& error) {
+                RuntimeReady = false;
+                CurrentFrameColor = BuildFailureColor();
+                WriteRuntimeDiagnostic("UPDATE_FATAL", error.what());
             } catch (...) {
                 RuntimeReady = false;
                 CurrentFrameColor = BuildFailureColor();
+                WriteRuntimeDiagnostic("UPDATE_FATAL", "unknown exception");
             }
         }
 #endif
@@ -278,14 +312,22 @@ namespace helengine::switch_platform {
         if(RuntimeReady && EngineCore!=nullptr) {
             auto* renderer=static_cast<SwitchRenderManager2D*>(EngineRenderManager2D);
             renderer->BeginFrame(pixels,FramebufferWidth,FramebufferHeight,stridePixels);
+            static bool firstRender = true;
             try {
+                if (firstRender) {
+                    WriteRuntimeDiagnostic("RENDER", "first draw starting");
+                }
                 EngineCore->Draw(); renderer->Draw(); renderer->EndFrame();
+                if (firstRender) {
+                    WriteRuntimeDiagnostic("RENDER", "first draw complete");
+                    firstRender = false;
+                }
                 static uint64_t frame=0;
                 if(frame++==0 || frame%600==0) std::printf("HELENGINE_SWITCH_MENU_FRAME: %llu blended_samples=%llu\n",static_cast<unsigned long long>(frame),static_cast<unsigned long long>(renderer->GetWrittenPixels()));
             }
             catch(const std::exception& error) {
                 renderer->EndFrame(); RuntimeReady=false; CurrentFrameColor=BuildFailureColor();
-                std::fprintf(stderr,"HELENGINE_SWITCH_RENDER_FATAL: %s\n",error.what());
+                WriteRuntimeDiagnostic("RENDER_FATAL", error.what());
             }
         }
 #endif
