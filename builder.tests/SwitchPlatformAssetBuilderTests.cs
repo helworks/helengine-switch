@@ -61,6 +61,9 @@ public sealed class SwitchPlatformAssetBuilderTests {
         Assert.Contains(builder.Definition.ComponentSupportRules, supportRule =>
             supportRule.ComponentTypeId == "helengine.meshcomponent" &&
             supportRule.SupportKind == PlatformComponentSupportKind.PassThrough);
+        Assert.Contains(builder.Definition.ComponentSupportRules, supportRule =>
+            supportRule.ComponentTypeId == "helengine.spritecomponent" &&
+            supportRule.SupportKind == PlatformComponentSupportKind.Transform);
     }
 
     /// <summary>

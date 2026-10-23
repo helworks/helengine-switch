@@ -134,8 +134,8 @@ public static class SwitchPlatformDefinitionFactory {
                     string.Empty),
                 new PlatformComponentSupportRule(
                     "helengine.spritecomponent",
-                    PlatformComponentSupportKind.PassThrough,
-                    "Switch packaged builds keep authored sprite components intact for generated-core runtime loading.",
+                    PlatformComponentSupportKind.Transform,
+                    "Switch packaged builds rewrite authored sprite components into the current ordinal runtime payload and cook their texture references.",
                     string.Empty)
             ],
             [
