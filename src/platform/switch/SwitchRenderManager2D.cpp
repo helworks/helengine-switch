@@ -10,6 +10,7 @@
 #include "Batch2DCameraProjection.hpp"
 #include "Batch2DVariant.hpp"
 #include "CameraViewportResolver.hpp"
+#include "RealMath.hpp"
 #include "Core.hpp"
 #include "Component.hpp"
 #include "Entity.hpp"
@@ -35,10 +36,10 @@ namespace helengine::switch_platform {
         for (int32_t i=0;i<cameras->get_Count();++i) {
             auto* camera=cameras->get_Item(i); if(camera==nullptr || camera->get_RenderQueue2D()==nullptr) continue;
             auto viewport=::CameraViewportResolver::ResolveViewport(camera->get_Viewport(),Width,Height);
-            ClipLeft=std::max(0,static_cast<int>(std::ceil(viewport.X-0.5f)));
-            ClipTop=std::max(0,static_cast<int>(std::ceil(viewport.Y-0.5f)));
-            ClipRight=std::min(Width,static_cast<int>(std::ceil(viewport.X+viewport.Z-0.5f)));
-            ClipBottom=std::min(Height,static_cast<int>(std::ceil(viewport.Y+viewport.W-0.5f)));
+            ClipLeft=std::max(0,static_cast<int>(::RealMath::Ceiling(viewport.X-0.5f)));
+            ClipTop=std::max(0,static_cast<int>(::RealMath::Ceiling(viewport.Y-0.5f)));
+            ClipRight=std::min(Width,static_cast<int>(::RealMath::Ceiling(viewport.X+viewport.Z-0.5f)));
+            ClipBottom=std::min(Height,static_cast<int>(::RealMath::Ceiling(viewport.Y+viewport.W-0.5f)));
             if(ClipRight<=ClipLeft || ClipBottom<=ClipTop) continue;
             Writer->ConfigureCamera(::Batch2DCameraProjection::Create(viewport),viewport);
             camera->get_RenderQueue2D()->VisitOrdered(this); Writer->Flush();
@@ -56,8 +57,8 @@ namespace helengine::switch_platform {
             for(int32_t i=0;components!=nullptr && i<components->get_Count();++i) {
                 auto* clip=dynamic_cast<::IClipRegion2D*>(components->get_Item(i)); if(clip==nullptr) continue;
                 auto rect=clip->GetClipRect();
-                left=std::max(left,static_cast<int>(std::ceil(rect.X-0.5f))); top=std::max(top,static_cast<int>(std::ceil(rect.Y-0.5f)));
-                right=std::min(right,static_cast<int>(std::ceil(rect.X+rect.Z-0.5f))); bottom=std::min(bottom,static_cast<int>(std::ceil(rect.Y+rect.W-0.5f)));
+                left=std::max(left,static_cast<int>(::RealMath::Ceiling(rect.X-0.5f))); top=std::max(top,static_cast<int>(::RealMath::Ceiling(rect.Y-0.5f)));
+                right=std::min(right,static_cast<int>(::RealMath::Ceiling(rect.X+rect.Z-0.5f))); bottom=std::min(bottom,static_cast<int>(::RealMath::Ceiling(rect.Y+rect.W-0.5f)));
             }
         }
         return ::Batch2DRun(::Batch2DVariant::RoundedShape,nullptr,left,top,std::max(0,right-left),std::max(0,bottom-top));
