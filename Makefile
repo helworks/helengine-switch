@@ -124,7 +124,8 @@ $(OFILES) $(OUTPUT).elf: $(NATIVE_BUILD_CONFIG)
 
 all: $(OUTPUT).nro
 
-$(OUTPUT).nro: $(OUTPUT).elf $(shell find $(ROMFS) -type f 2>/dev/null)
+NROFLAGS += --nacp=$(OUTPUT).nacp
+$(OUTPUT).nro: $(OUTPUT).elf $(OUTPUT).nacp $(shell find $(ROMFS) -type f 2>/dev/null)
 $(OUTPUT).elf: $(OFILES)
 
 -include $(DEPENDS)
