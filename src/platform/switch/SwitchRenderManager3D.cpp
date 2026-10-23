@@ -38,7 +38,7 @@ namespace helengine::switch_platform {
     }
 
     /// Builds a placeholder runtime material from one cooked platform-owned material payload serialized through the runtime content stream source.
-    ::RuntimeMaterial* SwitchRenderManager3D::BuildMaterialFromCooked(std::string cookedAssetPath, ::IContentStreamSource* contentStreamSource) {
+    ::RuntimeMaterial* SwitchRenderManager3D::BuildMaterialFromCooked(HeCppString cookedAssetPath, ::IContentStreamSource* contentStreamSource) {
         if (cookedAssetPath.empty()) {
             throw std::invalid_argument("Switch cooked material asset path is required.");
         }
@@ -48,7 +48,7 @@ namespace helengine::switch_platform {
 
         ::Stream* stream = contentStreamSource->OpenRead(cookedAssetPath);
         if (stream == nullptr) {
-            throw std::runtime_error("Switch cooked material asset could not be opened: " + cookedAssetPath);
+            throw std::runtime_error("Switch cooked material asset could not be opened: " + cookedAssetPath.raw());
         }
 
         try {
@@ -73,7 +73,7 @@ namespace helengine::switch_platform {
     }
 
     /// Builds a placeholder runtime model from one serialized model payload resolved through the runtime content stream source.
-    ::RuntimeModel* SwitchRenderManager3D::BuildModelFromCooked(std::string cookedAssetPath, ::IContentStreamSource* contentStreamSource) {
+    ::RuntimeModel* SwitchRenderManager3D::BuildModelFromCooked(HeCppString cookedAssetPath, ::IContentStreamSource* contentStreamSource) {
         if (cookedAssetPath.empty()) {
             throw std::invalid_argument("Switch cooked model asset path is required.");
         }
@@ -83,7 +83,7 @@ namespace helengine::switch_platform {
 
         ::Stream* stream = contentStreamSource->OpenRead(cookedAssetPath);
         if (stream == nullptr) {
-            throw std::runtime_error("Switch cooked model asset could not be opened: " + cookedAssetPath);
+            throw std::runtime_error("Switch cooked model asset could not be opened: " + cookedAssetPath.raw());
         }
 
         try {

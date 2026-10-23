@@ -31,9 +31,9 @@ namespace helengine::switch_platform {
 
         void Stop(int32_t voiceId) override;
 
-        void SetBusGain(std::string busId, float gain) override;
+        void SetBusGain(HeCppString busId, float gain) override;
 
-        void SetBusPaused(std::string busId, bool paused) override;
+        void SetBusPaused(HeCppString busId, bool paused) override;
 
         bool IsPlaying(int32_t voiceId) override;
 
@@ -102,7 +102,8 @@ namespace helengine::switch_platform {
 
         struct NativeState;
 
-        static std::string NormalizeBusId(std::string busId);
+        /// Normalizes a managed bus identifier for native lookup; null and empty select the master bus.
+        static std::string NormalizeBusId(HeCppString busId);
 
         static float ClampGain(float gain);
 

@@ -260,7 +260,7 @@ namespace helengine::switch_platform {
         ActiveVoicesById.erase(voiceIterator);
     }
 
-    void SwitchAudioBackend::SetBusGain(std::string busId, float gain) {
+    void SwitchAudioBackend::SetBusGain(HeCppString busId, float gain) {
         BusGainsById[NormalizeBusId(std::move(busId))] = ClampGain(gain);
         for (auto& voiceEntry : ActiveVoicesById) {
             ApplyVoicePlaybackState(voiceEntry.second);
@@ -269,7 +269,7 @@ namespace helengine::switch_platform {
         CommitDriverState();
     }
 
-    void SwitchAudioBackend::SetBusPaused(std::string busId, bool paused) {
+    void SwitchAudioBackend::SetBusPaused(HeCppString busId, bool paused) {
         std::string normalizedBusId = NormalizeBusId(std::move(busId));
         if (paused) {
             PausedBusIds.insert(normalizedBusId);
@@ -332,19 +332,20 @@ namespace helengine::switch_platform {
         }
     }
 
-    std::string SwitchAudioBackend::NormalizeBusId(std::string busId) {
+    std::string SwitchAudioBackend::NormalizeBusId(HeCppString busId) {
         if (busId.empty()) {
             return "master";
         }
 
+        std::string normalizedBusId = busId.raw();
         std::transform(
-            busId.begin(),
-            busId.end(),
-            busId.begin(),
+            normalizedBusId.begin(),
+            normalizedBusId.end(),
+            normalizedBusId.begin(),
             [](unsigned char value) {
                 return static_cast<char>(std::tolower(value));
             });
-        return busId;
+        return normalizedBusId;
     }
 
     float SwitchAudioBackend::ClampGain(float gain) {

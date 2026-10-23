@@ -23,13 +23,13 @@ namespace helengine::switch_platform {
         ::RuntimeMaterial* BuildMaterialFromCooked(::PlatformMaterialAsset* materialAsset) override;
 
         /// Builds a placeholder runtime material from one cooked platform-owned material payload serialized through the runtime content stream source.
-        ::RuntimeMaterial* BuildMaterialFromCooked(std::string cookedAssetPath, ::IContentStreamSource* contentStreamSource) override;
+        ::RuntimeMaterial* BuildMaterialFromCooked(HeCppString cookedAssetPath, ::IContentStreamSource* contentStreamSource) override;
 
         /// Builds a placeholder runtime model from the authored model asset.
         ::RuntimeModel* BuildModelFromRaw(::ModelAsset* data) override;
 
         /// Builds a placeholder runtime model from one serialized model payload resolved through the runtime content stream source.
-        ::RuntimeModel* BuildModelFromCooked(std::string cookedAssetPath, ::IContentStreamSource* contentStreamSource) override;
+        ::RuntimeModel* BuildModelFromCooked(HeCppString cookedAssetPath, ::IContentStreamSource* contentStreamSource) override;
 
         /// Releases one Switch runtime model after the final scene reference is removed.
         void ReleaseModel(::RuntimeModel* model) override;
