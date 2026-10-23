@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <exception>
+#include <typeinfo>
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
 #include <stdexcept>
@@ -32,6 +33,7 @@
 #include "platform/switch/SwitchRenderManager3D.hpp"
 #include "platform/switch/SwitchRuntimeDiagnosticsProvider.hpp"
 #include "runtime/runtime_scene_catalog_manifest.hpp"
+#include "runtime/native_exceptions.hpp"
 #include "runtime/runtime_standard_platform_input_manifest.hpp"
 #include "runtime/runtime_startup_manifest.hpp"
 #endif
@@ -59,6 +61,9 @@ namespace helengine::switch_platform {
             if (error != nullptr) {
                 try {
                     std::rethrow_exception(error);
+                } catch (const ::Exception* exception) {
+                    WriteRuntimeDiagnostic("TERMINATE_MANAGED_TYPE", exception == nullptr ? "null Exception pointer" : typeid(*exception).name());
+                    WriteRuntimeDiagnostic("TERMINATE_MANAGED", exception == nullptr ? "null Exception pointer" : exception->what());
                 } catch (const std::exception& exception) {
                     WriteRuntimeDiagnostic("TERMINATE", exception.what());
                 } catch (...) {
@@ -371,6 +376,11 @@ namespace helengine::switch_platform {
                 }
                 static uint64_t frame=0;
                 if(frame++==0 || frame%600==0) std::printf("HELENGINE_SWITCH_MENU_FRAME: %llu blended_samples=%llu\n",static_cast<unsigned long long>(frame),static_cast<unsigned long long>(renderer->GetWrittenPixels()));
+            }
+            catch (const ::Exception* error) {
+                WriteRuntimeDiagnostic("RENDER_MANAGED_TYPE", error == nullptr ? "null Exception pointer" : typeid(*error).name());
+                WriteRuntimeDiagnostic("RENDER_MANAGED_FATAL", error == nullptr ? "null Exception pointer" : error->what());
+                throw;
             }
             catch(const std::exception& error) {
                 renderer->EndFrame(); RuntimeReady=false; CurrentFrameColor=BuildFailureColor();
