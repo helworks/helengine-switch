@@ -21,7 +21,7 @@ public sealed class SwitchTextureSourceProcessor {
         if (extension == ".bntx") return new SwitchBntxTextureImporter().ImportTexture(stream);
         if (extension == ".hefont" || (fontAtlas && (extension == ".ttf" || extension == ".otf"))) {
             using FontAsset font = extension == ".hefont" ? helengine.files.FontAssetBinarySerializer.Deserialize(stream)
-                : new GdiFontImporter(null).ImportFont(stream, new FontAssetProcessorSettings { PixelSize = FontAssetProcessorSettings.DefaultPixelSize });
+                : ImportRawFont(stream);
             TextureAsset atlas = font.SourceTextureAsset ?? throw new InvalidDataException("Switch source font has no embedded atlas.");
             font.SourceTextureAsset = null; return atlas;
         }
@@ -32,6 +32,21 @@ public sealed class SwitchTextureSourceProcessor {
             throw new InvalidDataException("Switch source asset is not a texture.");
         }
         if (extension == ".dds" || extension == ".tga" || extension == ".targa") return new PfimTextureImporter().ImportTexture(stream);
-        return new GDITextureImporter().ImportTexture(stream);
+        if (OperatingSystem.IsWindows()) return new GDITextureImporter().ImportTexture(stream);
+        TextureImporterRegistration registration = PortableImporterFactory.CreateDefault()
+            .OfType<TextureImporterRegistration>()
+            .Single(item => item.ImporterId == "gdi");
+        return registration.Importer.ImportTexture(stream)
+            ?? throw new InvalidDataException("Switch source image could not be decoded.");
+    }
+
+    /// <summary>Preserves the Windows font importer and its default raster settings while using the existing portable registration on other hosts.</summary>
+    static FontAsset ImportRawFont(Stream stream) {
+        IFontImporter importer = OperatingSystem.IsWindows()
+            ? new GdiFontImporter(null)
+            : PortableImporterFactory.CreateDefault().OfType<FontImporterRegistration>()
+                .Single(item => item.ImporterId == "gdi-font").Importer;
+        return importer.ImportFont(stream, new FontAssetProcessorSettings { PixelSize = FontAssetProcessorSettings.DefaultPixelSize })
+            ?? throw new InvalidDataException("Switch source font could not be decoded.");
     }
 }

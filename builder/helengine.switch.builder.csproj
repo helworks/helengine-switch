@@ -14,13 +14,9 @@
     <ProjectReference Include="$(HelengineRoot)\engine\helengine.baseplatform\helengine.baseplatform.csproj" />
     <ProjectReference Include="$(HelengineRoot)\engine\helengine.core\helengine.core.csproj" />
     <ProjectReference Include="$(HelengineRoot)\engine\helengine.editor\helengine.editor.csproj" />
+    <ProjectReference Include="$(HelengineRoot)\engine\helengine.editor.portableimporter\helengine.editor.portableimporter.csproj" />
     <ProjectReference Include="$(HelengineRoot)\engine\helengine.editor.windows.gdiimporter\helengine.editor.windows.gdiimporter.csproj" />
     <ProjectReference Include="$(HelengineRoot)\engine\helengine.files\helengine.files.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Pfim" Version="0.11.4" />
-    <Compile Include="$(HelengineRoot)\engine\helengine.editor.windows\content\textures\PfimTextureImporter.cs" Link="import\PfimTextureImporter.cs" />
   </ItemGroup>
 
   <Target Name="ValidateHelengineRoot" BeforeTargets="CollectPackageReferences">
