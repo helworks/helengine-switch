@@ -2,6 +2,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
+#include <exception>
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
 #include <stdexcept>
@@ -28,6 +30,7 @@
 #include "platform/switch/SwitchPackagedAssetLoader.hpp"
 #include "platform/switch/SwitchRenderManager2D.hpp"
 #include "platform/switch/SwitchRenderManager3D.hpp"
+#include "platform/switch/SwitchRuntimeDiagnosticsProvider.hpp"
 #include "runtime/runtime_scene_catalog_manifest.hpp"
 #include "runtime/runtime_standard_platform_input_manifest.hpp"
 #include "runtime/runtime_startup_manifest.hpp"
@@ -47,6 +50,29 @@ namespace helengine::switch_platform {
         }
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
+        /// Preserves the platform's original fatal termination behavior after writing diagnostics.
+        std::terminate_handler PreviousTerminateHandler = nullptr;
+
+        /// Reports uncaught C++ termination and delegates to the previously installed handler.
+        [[noreturn]] void ReportRuntimeTermination() {
+            const std::exception_ptr error = std::current_exception();
+            if (error != nullptr) {
+                try {
+                    std::rethrow_exception(error);
+                } catch (const std::exception& exception) {
+                    WriteRuntimeDiagnostic("TERMINATE", exception.what());
+                } catch (...) {
+                    WriteRuntimeDiagnostic("TERMINATE", "non-standard exception");
+                }
+            } else {
+                WriteRuntimeDiagnostic("TERMINATE", "no active C++ exception");
+            }
+            if (PreviousTerminateHandler != nullptr) {
+                PreviousTerminateHandler();
+            }
+            std::abort();
+        }
+
         /// Builds one runtime scene catalog from the generated native scene-manifest entries.
         ::RuntimeSceneCatalog* BuildRuntimeSceneCatalog() {
             std::size_t sceneCount = 0;
@@ -120,7 +146,13 @@ namespace helengine::switch_platform {
 
     /// Initializes the Switch boot path and keeps frames visible until shutdown.
     int SwitchBootHost::Run() {
+#if HELENGINE_SWITCH_HAS_GENERATED_CORE
+        PreviousTerminateHandler = std::set_terminate(ReportRuntimeTermination);
+#endif
         if (!InitializeFramebuffer()) {
+#if HELENGINE_SWITCH_HAS_GENERATED_CORE
+            std::set_terminate(PreviousTerminateHandler);
+#endif
             return 1;
         }
 
@@ -145,7 +177,11 @@ namespace helengine::switch_platform {
         }
 #endif
 
-        return RunMainLoop();
+        const int result = RunMainLoop();
+#if HELENGINE_SWITCH_HAS_GENERATED_CORE
+        std::set_terminate(PreviousTerminateHandler);
+#endif
+        return result;
     }
 
     /// Runs the steady-state Switch frame loop.
@@ -154,6 +190,7 @@ namespace helengine::switch_platform {
             UpdateRuntimeFrame();
             RenderFrame();
         }
+        WriteRuntimeDiagnostic("APPLET_LOOP", "appletMainLoop returned false; shutting down");
 
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
         ShutdownCore();
@@ -187,6 +224,8 @@ namespace helengine::switch_platform {
 #if HELENGINE_SWITCH_HAS_GENERATED_CORE
         EngineCore = new ::Core();
         EngineOptions = EngineCore->get_InitializationOptions();
+        static SwitchRuntimeDiagnosticsProvider startupDiagnostics;
+        EngineOptions->set_RuntimeDiagnosticsProvider(&startupDiagnostics);
         EngineOptions->set_ContentStreamSource(new HostFileSystemContentStreamSource("romfs:/"));
         EngineOptions->set_UpdateOrderLayers(4);
         EngineOptions->set_RenderOrderLayers3D(4);
@@ -317,7 +356,15 @@ namespace helengine::switch_platform {
                 if (firstRender) {
                     WriteRuntimeDiagnostic("RENDER", "first draw starting");
                 }
-                EngineCore->Draw(); renderer->Draw(); renderer->EndFrame();
+                EngineCore->Draw();
+                if (firstRender) {
+                    WriteRuntimeDiagnostic("RENDER", "Core.Draw returned; renderer draw starting");
+                }
+                renderer->Draw();
+                if (firstRender) {
+                    WriteRuntimeDiagnostic("RENDER", "renderer draw returned; ending frame");
+                }
+                renderer->EndFrame();
                 if (firstRender) {
                     WriteRuntimeDiagnostic("RENDER", "first draw complete");
                     firstRender = false;
@@ -328,6 +375,9 @@ namespace helengine::switch_platform {
             catch(const std::exception& error) {
                 renderer->EndFrame(); RuntimeReady=false; CurrentFrameColor=BuildFailureColor();
                 WriteRuntimeDiagnostic("RENDER_FATAL", error.what());
+            } catch (...) {
+                WriteRuntimeDiagnostic("RENDER_FATAL", "non-standard exception; preserving propagation");
+                throw;
             }
         }
 #endif
@@ -349,4 +399,10 @@ namespace helengine::switch_platform {
     u32 SwitchBootHost::BuildBootstrapColor() {
         return RGBA8_MAXALPHA(255, 255, 0);
     }
+}
+
+/// Observes the SDK's existing application-exit cleanup without replacing its termination path.
+extern "C" void userAppExit() {
+    constexpr char message[] = "HELENGINE_SWITCH_APP_EXIT: libnx application cleanup invoked\n";
+    svcOutputDebugString(message, sizeof(message) - 1);
 }
