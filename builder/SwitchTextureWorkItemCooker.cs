@@ -5,8 +5,13 @@ namespace helengine.switch_platform.builder;
 /// <summary>Executes Switch-owned texture/font work items inside a bounded package-source directory.</summary>
 public sealed class SwitchTextureWorkItemCooker {
     /// <summary>Cooks and serializes one declared native or legacy texture output before RomFS staging.</summary>
-    public void Cook(PlatformCookWorkItem item, string packageRoot) {
+    /// <param name="item">Declared texture or atlas work item to execute.</param>
+    /// <param name="packageRoot">Bounded staging directory that receives the output.</param>
+    /// <param name="numericPolicy">Target package policy; existing callers default to the current runtime policy.</param>
+    public void Cook(PlatformCookWorkItem item, string packageRoot, NumericPrecisionPolicy numericPolicy = null) {
         if (item == null) throw new ArgumentNullException(nameof(item));
+        numericPolicy ??= RealRepresentation.Policy;
+        RealBinaryCodec.ValidatePolicy(numericPolicy);
         if (item.TargetPlatformId != "switch" || item.TargetArtifactKind != "runtime-texture"
             || (item.SourceAssetKind != "texture" && item.SourceAssetKind != "font-atlas-texture")) throw new InvalidOperationException("Unsupported Switch texture work item.");
         string root = Path.GetFullPath(packageRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
@@ -31,6 +36,6 @@ public sealed class SwitchTextureWorkItemCooker {
         var settings = SwitchTextureCookSettingsSerializer.Deserialize(item.SerializedPlatformSettings);
         using TextureAsset cooked = new SwitchTextureSourceProcessor().Cook(source, assetId, settings, fontAtlas);
         Directory.CreateDirectory(Path.GetDirectoryName(destination));
-        File.WriteAllBytes(destination, helengine.files.AssetSerializer.SerializeToBytes(cooked));
+        File.WriteAllBytes(destination, helengine.files.AssetSerializer.SerializeToBytes(cooked, numericPolicy));
     }
 }

@@ -6,6 +6,7 @@ using helengine.baseplatform.Profiles;
 using helengine.baseplatform.Reporting;
 using helengine.baseplatform.Requests;
 using helengine.baseplatform.Targets;
+using helengine.baseplatform.Definitions;
 
 namespace helengine.switch_platform.builder.tests;
 
@@ -14,13 +15,18 @@ public sealed class SwitchTextureBuildTests : ISwitchNativeBuildExecutor, IPlatf
     /// <summary>Records the resolved workspace after cooking and staging have completed.</summary>
     public SwitchBuildWorkspace Workspace { get; private set; }
     /// <summary>Checks image and packaged-font atlas work items reach RomFS with stable identities and owned native buffers.</summary>
+    /// <param name="fontAtlas">Whether the source supplies a font atlas rather than a texture.</param>
+    /// <param name="storageBits">Target numeric width required by the packaged runtime reader.</param>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Builder_cooks_and_stages_native_texture_work_items(bool fontAtlas) {
+    [InlineData(false, 32)]
+    [InlineData(true, 32)]
+    [InlineData(false, 64)]
+    [InlineData(true, 64)]
+    public async Task Builder_cooks_and_stages_native_texture_work_items(bool fontAtlas, int storageBits) {
+        NumericPrecisionPolicy numericPolicy = new(storageBits, storageBits);
         string fixtureRoot = Environment.GetEnvironmentVariable("HELENGINE_SWITCH_TEXTURE_TEST_OUTPUT")
             ?? throw new InvalidOperationException("A repository-local texture test output directory is required.");
-        string root = Path.Combine(fixtureRoot, "build-" + Guid.NewGuid().ToString("N"));
+        string root = Path.Combine(fixtureRoot, "cooker-policy-test");
         string working = Path.Combine(root, "working"), generated = Path.Combine(root, "generated-core");
         Directory.CreateDirectory(generated);
         File.WriteAllText(Path.Combine(generated, "helcpp_config.hpp"), "#define HE_CPP_PLATFORM_SWITCH 1");
@@ -53,18 +59,44 @@ public sealed class SwitchTextureBuildTests : ISwitchNativeBuildExecutor, IPlatf
             [new PlatformBuildTargetVariant("switch-default", "switch", "switch", "debug")],
             [new PlatformCookProfile("debug", "Debug", new PlatformCookProfileCapabilities("switch", "raw", "rgba", "switch-scene-v1", PlatformSerializationEndianness.LittleEndian))],
             Path.Combine(root, "output"), working, "debug", "switch-native", "default", new Dictionary<string, string>(), new Dictionary<string, string>(),
-            new Dictionary<string, string>(), generated, "switch-homebrew-nro", "romfs-package");
+            new Dictionary<string, string> {
+                [PlatformCodegenSettingIds.RealStorageBits] = storageBits.ToString(),
+                [PlatformCodegenSettingIds.RealArithmeticBits] = storageBits.ToString()
+            }, generated, "switch-homebrew-nro", "romfs-package");
         var report = await new SwitchPlatformAssetBuilder(this, root).BuildAsync(request, this, this, CancellationToken.None);
         Assert.True(report.Succeeded); Assert.NotNull(Workspace);
         string cookedPath = Path.Combine(working, "package-source", relative);
         Assert.Equal(File.ReadAllBytes(cookedPath), File.ReadAllBytes(Path.Combine(working, "romfs", relative)));
-        using FileStream cookedStream = File.OpenRead(cookedPath);
-        using TextureAsset native = Assert.IsType<TextureAsset>(PackagedAssetBinarySerializer.Deserialize(cookedStream));
-        Assert.Equal(TextureAssetColorFormat.SwitchNative, native.ColorFormat);
-        Assert.Equal(RuntimeAssetIdGenerator.Generate("fixture-texture" + (fontAtlas ? "#atlas" : "")), native.RuntimeAssetId);
-        Assert.Equal(fontAtlas ? 5 : 13, native.Width); Assert.Equal(fontAtlas ? 5 : 9, native.Height);
-        Assert.Equal(native.Width * native.Height * 4, TextureAssetPixelCodec.DecodeToRgba32(native).Length);
+        using (FileStream cookedStream = File.OpenRead(cookedPath)) {
+            using TextureAsset native = Assert.IsType<TextureAsset>(PackagedAssetBinarySerializer.Deserialize(cookedStream, numericPolicy));
+            Assert.Equal(TextureAssetColorFormat.SwitchNative, native.ColorFormat);
+            Assert.Equal(RuntimeAssetIdGenerator.Generate("fixture-texture" + (fontAtlas ? "#atlas" : "")), native.RuntimeAssetId);
+            Assert.Equal(fontAtlas ? 5 : 13, native.Width); Assert.Equal(fontAtlas ? 5 : 9, native.Height);
+            Assert.Equal(native.Width * native.Height * 4, TextureAssetPixelCodec.DecodeToRgba32(native).Length);
+        }
         if (fontAtlas) Assert.True(File.Exists(Path.Combine(working, "romfs", "cooked/textures/native.hefont")));
+        Directory.Delete(root, recursive: true);
+    }
+    /// <summary>Checks material payloads follow the target policy rather than the managed tooling host.</summary>
+    /// <param name="storageBits">Target storage and arithmetic width required by the runtime reader.</param>
+    [Theory]
+    [InlineData(32)]
+    [InlineData(64)]
+    public void Material_cook_preserves_target_numeric_policy(int storageBits) {
+        NumericPrecisionPolicy numericPolicy = new(storageBits, storageBits);
+        var result = new SwitchPlatformAssetBuilder().CookMaterial(new PlatformMaterialCookRequest(
+            "menu-material", "assets/menu.hasset", "switch", "debug", "switch-native",
+            SwitchMaterialSchemaIds.StandardTexturedSchemaId, new Dictionary<string, string> {
+                [SwitchMaterialSchemaIds.TextureRelativePathFieldId] = "cooked/textures/menu.hetex",
+                [SwitchMaterialSchemaIds.DoubleSidedFieldId] = "false",
+                [SwitchMaterialSchemaIds.VertexColorModeFieldId] = "multiply",
+                [SwitchMaterialSchemaIds.BaseColorFieldId] = "#FFFFFFFF",
+                [SwitchMaterialSchemaIds.LightingModeFieldId] = "unlit"
+            }, numericPolicy: numericPolicy));
+        using MemoryStream stream = new(result.CookedMaterialBytes);
+        PlatformMaterialAsset material = Assert.IsType<PlatformMaterialAsset>(PackagedAssetBinarySerializer.Deserialize(stream, numericPolicy));
+        Assert.Equal(RuntimeAssetIdGenerator.Generate("menu-material"), material.RuntimeAssetId);
+        Assert.Equal("cooked/textures/menu.hetex", material.TextureRelativePath);
     }
     /// <summary>Rejects output traversal before opening a source or creating an output file.</summary>
     [Fact]

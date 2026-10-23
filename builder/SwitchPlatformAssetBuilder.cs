@@ -108,7 +108,7 @@ public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
         };
 
         return new PlatformMaterialCookResult(
-            helengine.files.AssetSerializer.SerializeToBytes(cookedAsset),
+            helengine.files.AssetSerializer.SerializeToBytes(cookedAsset, request.NumericPolicy),
             []);
     }
 
@@ -149,7 +149,7 @@ public sealed class SwitchPlatformAssetBuilder : IPlatformAssetBuilder {
             Directory.CreateDirectory(packageSourceRootPath);
             SwitchTextureWorkItemCooker cooker = new SwitchTextureWorkItemCooker();
             foreach (PlatformCookWorkItem workItem in request.Manifest.PlatformCookWorkItems) {
-                cancellationToken.ThrowIfCancellationRequested(); cooker.Cook(workItem, packageSourceRootPath);
+                cancellationToken.ThrowIfCancellationRequested(); cooker.Cook(workItem, packageSourceRootPath, request.NumericPolicy);
             }
         }
         bool hasPackageSource = Directory.Exists(packageSourceRootPath);
